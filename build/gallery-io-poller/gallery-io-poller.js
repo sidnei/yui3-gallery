@@ -380,4 +380,4 @@ YUI.add('gallery-io-poller', function(Y) {
 	
 
 
-}, '@VERSION@' ,{requires:['io-base', 'base']});
+}, '@VERSION@' ,{requires:['io-base', 'base-base']});
