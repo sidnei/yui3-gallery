@@ -10,7 +10,7 @@ YUI.add('gallery-io-poller', function(Y) {
 	 */
 	
 	/**
-	 * Create a poller to continually ask a server if a resource has been modified.
+	 * Extends Y.io to add support for xhr-polling.
 	 * 
 	 * @module poller
 	 * @requires io-base, base
@@ -35,7 +35,7 @@ YUI.add('gallery-io-poller', function(Y) {
 	
 	/**
 	 * Create a polling task to continually check the server at the specified interval for updates of a resource at a URI.
-	 * The poller will use conditional GET requests and notify the client via Events when the resource has changed.
+	 * The poller will use conditional GET requests and notify the client via Callbacks and Events when the resource has changed.
 	 * 
 	 * @class Poller
 	 * @extends Base
@@ -79,10 +79,11 @@ YUI.add('gallery-io-poller', function(Y) {
 			},
 			
 			/**
-			 * The URI of the resource which the component will check for modifications.
+			 * The URI of the resource which to xhr-poll.
 			 * 
 			 * @attribute uri
 			 * @type String
+			 * @writeOnce
 			 */
 			uri : {
 				validator : isString,
@@ -90,10 +91,11 @@ YUI.add('gallery-io-poller', function(Y) {
 			},
 			
 			/**
-			 * The configuration sent along with each IO XHR request.
+			 * The configuration Y.io config.
 			 * 
 			 * @attribute ioConfig
 			 * @type Object
+			 * @writeOnce
 			 */
 			ioConfig : {
 				validator : isObject,
@@ -106,6 +108,7 @@ YUI.add('gallery-io-poller', function(Y) {
 			 * @attribute polling
 			 * @type Boolean
 			 * @default false
+			 * @readOnly
 			 * @final
 			 */
 			polling : {
@@ -120,7 +123,7 @@ YUI.add('gallery-io-poller', function(Y) {
 	Y.extend( Poller, Y.Base, {
 		
 		/**
-		 * Reference to the timer object that's polling the server.
+		 * Timer object to schedule next request to server.
 		 * 
 		 * @property _timer
 		 * @type Y.later
@@ -165,7 +168,7 @@ YUI.add('gallery-io-poller', function(Y) {
 		_etag : null,
 		
 		/**
-		 * Construction of the component linking up and publishing event during initialization.
+		 * Construction of the component.
 		 * 
 		 * @method initializer
 		 * @param {Object} config Configuration Object
@@ -192,7 +195,7 @@ YUI.add('gallery-io-poller', function(Y) {
 		},
 		
 		/**
-		 * Destruction of the component. Stops polling and removes event internal listeners.
+		 * Destruction of the component. Stops polling and cleans up.
 		 * 
 		 * @method destructor
 		 * @protected
@@ -205,10 +208,10 @@ YUI.add('gallery-io-poller', function(Y) {
 		},
 		
 		/**
-		 * Starts the polling task, the poller:start event is fired as a result of calling this method.
+		 * Starts the polling task.
 		 * A request will be sent to the server right at the time of calling this method;
-		 * continued by sending subsequent requests at the set interval.
-		 * If the pause method has been called, calling start will clear the pause.
+		 * and continued by sending subsequent requests at the set interval.
+		 * To stop or pause polling call the stop method.
 		 * 
 		 * @method start
 		 */
@@ -221,8 +224,8 @@ YUI.add('gallery-io-poller', function(Y) {
 		},
 		
 		/**
-		 * Stops the polling task, the poller:stop event is fired.
-		 * If the paused method has been called, calling start will clear the pause.
+		 * Stops the polling task.
+		 * Start can be called to resume polling.
 		 * 
 		 * @method stop
 		 */
@@ -245,7 +248,7 @@ YUI.add('gallery-io-poller', function(Y) {
 		
 		/**
 		 * Sends the XHR request to the server at the given URI (resource).
-		 * This is method is call at the set interval while polling.
+		 * Method used internally to make the XHR requests.
 		 * 
 		 * @method sendRequest
 		 * @protected
@@ -366,6 +369,17 @@ YUI.add('gallery-io-poller', function(Y) {
 		
 	});
 	
+	/**
+	 * Method for scheduling a XHR-polling task. Returns an instance of Poller
+	 * 
+	 * @method Y.io.poll
+	 * @param {Number} interval The time in milliseconds for which the component should send a request to the server.
+	 * @param {Object} uri qualified path to transaction resource.
+	 * @param {Object} config configuration object for the transaction(s); just like Y.io's config object, but with an on:modified callback/event.
+	 * @return {Poller} an instance of Poller which has start/stop methods and a configurable interval
+	 * @public
+	 * @static
+	 */
 	Y.mix(Y.io, {
 		
 		poll: function (interval, uri, config) {
