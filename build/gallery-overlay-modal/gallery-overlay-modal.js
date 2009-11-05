@@ -1,3 +1,5 @@
+YUI.add('gallery-overlay-modal', function(Y) {
+
 	/**
 	 * Overlay Modal Plugin
 	 * 
@@ -146,3 +148,6 @@
 	});
 	
 	Y.namespace('Plugin').OverlayModal = OverlayModal;
+
+
+}, '@VERSION@' ,{requires:['overlay','plugin']});
