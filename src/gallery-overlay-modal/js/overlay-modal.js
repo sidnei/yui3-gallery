@@ -66,9 +66,9 @@
 		
 		initializer : function (config) {
 			
-			this.doAfter('renderUI', this._renderUI);
-			this.doAfter('bindUI', this._bindUI);
-			this.doAfter('syncUI', this._syncUI);
+			this.doAfter('renderUI', this.renderUI);
+			this.doAfter('bindUI', this.bindUI);
+			this.doAfter('syncUI', this.syncUI);
 			
 			if (this.get(HOST).get('rendered')) {
 				this.renderUI();
