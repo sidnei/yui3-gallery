@@ -90,8 +90,6 @@ YUI.add('gallery-overlay-modal', function(Y) {
 		
 		renderUI : function () {
 			
-			var boundingBox = this.get(HOST).get(BOUNDING_BOX);
-			
 			this._maskNode = Y.Node.create('<div></div>');
 			this._maskNode.addClass(OverlayModal.CLASSES.mask);
 			this._maskNode.setStyles({
@@ -103,8 +101,7 @@ YUI.add('gallery-overlay-modal', function(Y) {
 				zIndex		: '-1'
 			});
 			
-			boundingBox.append(this._maskNode);
-			boundingBox.addClass(OverlayModal.CLASSES.modal);
+			this.get(HOST).get(BOUNDING_BOX).addClass(OverlayModal.CLASSES.modal);
 		},
 		
 		bindUI : function () {
