@@ -394,4 +394,4 @@ YUI.add('gallery-io-poller', function(Y) {
 	
 
 
-}, '@VERSION@' ,{requires:['io-base', 'base-base']});
+}, 'gallery-2009.11.02-20' ,{requires:['io-base', 'base-base']});
