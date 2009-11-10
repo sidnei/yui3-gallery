@@ -128,9 +128,11 @@
 		
 		_uiSetMask : function (mask) {
 			
+			var hostBoundingBox = this.get(HOST).get(BOUNDING_BOX);
+			
 			if (mask) {
-				this.get(HOST).get(BOUNDING_BOX).append(this._maskNode);
-			} else {
+				hostBoundingBox.append(this._maskNode);
+			} else if (this._maskNode.get('parentNode') === hostBoundingBox) {
 				this._maskNode.remove();
 			}
 		},
