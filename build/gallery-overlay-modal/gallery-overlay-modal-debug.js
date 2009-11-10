@@ -147,4 +147,4 @@ YUI.add('gallery-overlay-modal', function(Y) {
 	Y.namespace('Plugin').OverlayModal = OverlayModal;
 
 
-}, '@VERSION@' ,{requires:['overlay','plugin']});
+}, 'gallery-2009.11.09-19' ,{requires:['overlay','plugin']});
