@@ -63,7 +63,6 @@ YUI.add('gallery-overlay-modal', function(Y) {
 		// *** Instance Members *** //
 		
 		_maskNode : null,
-		_focusHandle : null,
 		
 		// *** Lifecycle Methods *** //
 		
@@ -85,8 +84,6 @@ YUI.add('gallery-overlay-modal', function(Y) {
 			if (this._maskNode) {
 				this._maskNode.remove(true);
 			}
-			
-			this._detachFocusHandle();
 			
 			this.get(HOST).get(BOUNDING_BOX).removeClass(OverlayModal.CLASSES.modal);
 		},
@@ -110,22 +107,11 @@ YUI.add('gallery-overlay-modal', function(Y) {
 		bindUI : function () {
 			
 			this.after(MASK+CHANGE, this._afterMaskChange);
-			
-			this.get(HOST).after('visibleChange', Y.bind(this._afterHostVisibleChange, this));
 		},
 		
 		syncUI : function () {
 			
-			var host = this.get(HOST);
-			
 			this._uiSetMask(this.get(MASK));
-			
-			if (host.get('visible') === true) {
-				this._attachFocusHandle();
-				host.get(BOUNDING_BOX).focus();
-			} else {
-				this._detachFocusHandle();
-			}
 		},
 		
 		// *** Public Methods *** //
@@ -144,48 +130,16 @@ YUI.add('gallery-overlay-modal', function(Y) {
 		
 		_uiSetMask : function (mask) {
 			
-			var hostBoundingBox = this.get(HOST).get(BOUNDING_BOX);
-			
 			if (mask) {
-				hostBoundingBox.append(this._maskNode);
-			} else if (this._maskNode.get('parentNode') === hostBoundingBox) {
+				this.get(HOST).get(BOUNDING_BOX).append(this._maskNode);
+			} else {
 				this._maskNode.remove();
-			}
-		},
-		
-		_attachFocusHandle : function () {
-			
-			this._focusHandle = Y.one('document').on('focus', Y.bind(function(e){
-			
-				var hostBoundingBox = this.get(HOST).get(BOUNDING_BOX);
-				
-				if ( ! hostBoundingBox.contains(e.target)) {
-					hostBoundingBox.focus();
-				}
-			
-			}, this));
-		},
-		
-		_detachFocusHandle : function () {
-			
-			if (this._focusHandle) {
-				this._focusHandle.detach();
 			}
 		},
 		
 		_afterMaskChange : function (e) {
 			
 			this._uiSetMask(e.newVal);
-		},
-		
-		_afterHostVisibleChange : function (e) {
-			
-			if (e.newVal === true) {
-				this._attachFocusHandle();
-				this.get(HOST).get(BOUNDING_BOX).focus();
-			} else {
-				this._detachFocusHandle();
-			}
 		}
 		
 	});
@@ -193,4 +147,4 @@ YUI.add('gallery-overlay-modal', function(Y) {
 	Y.namespace('Plugin').OverlayModal = OverlayModal;
 
 
-}, '@VERSION@' ,{requires:['overlay', 'plugin', 'event-focus']});
+}, 'gallery-2009.11.09-19' ,{requires:['overlay','plugin']});
