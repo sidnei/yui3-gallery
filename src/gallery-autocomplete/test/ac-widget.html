@@ -85,36 +85,25 @@ YUI({
     debug: true,
     base : "../../../build/",
     filter : "raw"
-}).use('ac-plugin', 'ac-widget', 'datasource', function (Y) {
-    window.Y = Y;
-
-    var input = window.input = Y.get("#input");
-    input.plug(Y.Plugin.ACPlugin);
+}).use('gallery-autocomplete', 'datasource', function (Y) {
     
-    var myDS = new Y.DataSource.Get({
-        source : "http://query.yahooapis.com/v1/public/yql?" +
-            "format=json&" +
-            "env=http%3A%2F%2Fdatatables.org%2Falltables.env&",
-        scriptCallbackParam : "callback"
-    });
-
-    myDS.plug({fn : Y.Plugin.DataSourceJSONSchema, cfg : {
-        schema : { resultListLocator : "query.results.Result" }
-    }});
-    
-    
-    input.plug(Y.Plugin.ACPlugin, {
-        queryTemplate : function (q) { return "q=" + encodeURIComponent(
-            "select * from search.suggest where query =\"" +
-            q.replace(/(["\\])/g, '\\$1') +
-            "\" limit 10"
-        )},
-        dataSource : myDS
-    });
-    
-    window.acw = new Y.ACWidget({ ac : input.ac });
-    acw.render();
-        
+    new Y.ACWidget({
+        ac : Y.get("#input").plug(Y.Plugin.ACPlugin, {
+            queryTemplate : function (q) { return "q=" + encodeURIComponent(
+                "select * from search.suggest where query =\"" +
+                q.replace(/(["\\])/g, '\\$1') +
+                "\" limit 10"
+            )},
+            dataSource : new Y.DataSource.Get({
+                source : "http://query.yahooapis.com/v1/public/yql?" +
+                    "format=json&" +
+                    "env=http%3A%2F%2Fdatatables.org%2Falltables.env&",
+                scriptCallbackParam : "callback"
+            }).plug({fn : Y.Plugin.DataSourceJSONSchema, cfg : {
+                schema : { resultListLocator : "query.results.Result" }
+            }})
+        }).ac
+    }).render();
 });
 </script>
 
