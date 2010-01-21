@@ -160,4 +160,4 @@ Y.Env.evt.plugins[eventName] = event;
 if (Y.Node) Y.Node.DOM_EVENTS[eventName] = event;
 
 
-}, '@VERSION@' ,{optional:['event-custom'], requires:['node-base', 'event-focus']});
+}, 'gallery-2010.01.20-19' ,{optional:['event-custom'], requires:['node-base', 'event-focus']});
