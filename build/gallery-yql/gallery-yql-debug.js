@@ -90,8 +90,13 @@ YUI.add('gallery-yql', function(Y) {
                 qs += k + '=' + encodeURIComponent(v) + '&';
             });
             
+            url = BASE_URL + qs;
+            
             if (!opts) {
                 opts = {};
+            }
+            if (opts.secure) {
+            	url = url.replace(/http/, 'https');
             }
             opts.autopurge = true;
             opts.context = this;
@@ -103,7 +108,6 @@ YUI.add('gallery-yql', function(Y) {
                 }
             };
 
-            url = BASE_URL + qs;
             Y.Get.script(url, opts);
             return this;
         }
@@ -130,4 +134,4 @@ YUI.add('gallery-yql', function(Y) {
 	
 
 
-}, 'gallery-2009.10.27' ,{requires:['get', 'event-custom']});
+}, '@VERSION@' ,{requires:['get', 'event-custom']});

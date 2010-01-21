@@ -88,8 +88,13 @@
                 qs += k + '=' + encodeURIComponent(v) + '&';
             });
             
+            url = BASE_URL + qs;
+            
             if (!opts) {
                 opts = {};
+            }
+            if (opts.secure) {
+            	url = url.replace(/http/, 'https');
             }
             opts.autopurge = true;
             opts.context = this;
@@ -101,7 +106,6 @@
                 }
             };
 
-            url = BASE_URL + qs;
             Y.Get.script(url, opts);
             return this;
         }
