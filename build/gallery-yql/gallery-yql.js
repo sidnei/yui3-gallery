@@ -18,7 +18,7 @@ YUI.add('gallery-yql', function(Y) {
      * @param {Object} params An object literal of extra parameters to pass along (optional).
      * @param {Object} opts An object literal of extra options to pass along to the Get Utility (optional).
      */
-    var BASE_URL = 'http:/'+'/query.yahooapis.com/v1/public/yql?',
+    var BASE_URL = ':/'+'/query.yahooapis.com/v1/public/yql?',
     yql = function (sql, callback, params, opts) {
         yql.superclass.constructor.apply(this);
         this._query(sql, callback, params, opts);
@@ -66,7 +66,7 @@ YUI.add('gallery-yql', function(Y) {
         * @return Self
         */
         _query: function(sql, callback, params, opts) {
-            var st = Y.stamp({}), qs = '', url;
+            var st = Y.stamp({}), qs = '', url = 'http';
             //Must replace the dashes with underscrores
             st = st.replace(/-/g, '_');
 
@@ -90,14 +90,14 @@ YUI.add('gallery-yql', function(Y) {
                 qs += k + '=' + encodeURIComponent(v) + '&';
             });
             
-            url = BASE_URL + qs;
-            
             if (!opts) {
                 opts = {};
             }
+
             if (opts.secure) {
-            	url = url.replace(/http/, 'https');
+                url = 'https';
             }
+
             opts.autopurge = true;
             opts.context = this;
             opts.onTimeout = function(o){
@@ -108,6 +108,7 @@ YUI.add('gallery-yql', function(Y) {
                 }
             };
 
+            url += BASE_URL + qs;
             Y.Get.script(url, opts);
             return this;
         }
@@ -134,4 +135,4 @@ YUI.add('gallery-yql', function(Y) {
 	
 
 
-}, '@VERSION@' ,{requires:['get', 'event-custom']});
+}, 'gallery-2010.01.27-20' ,{requires:['get', 'event-custom']});

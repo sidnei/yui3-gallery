@@ -283,7 +283,7 @@ function handleQueryResponse (e) {
 
 
 
-}, '@VERSION@' ,{requires:['node', 'plugin', 'gallery-value-change', 'event-key'], optional:['event-custom']});
+}, 'gallery-2010.01.27-20' ,{requires:['node', 'plugin', 'gallery-value-change', 'event-key'], optional:['event-custom']});
 YUI.add('gallery-ac-widget', function(Y) {
 
 
@@ -443,7 +443,7 @@ Y.ACWidget = Y.extend(
                 out = item;
             //TODO: use Y.cache on this fn so that the regexp is only created
             // once per term/queryTerms
-            var findRegexp = new RegExp("("+queryTerms.join("|")+")", "g",
+            var findRegexp = new RegExp("("+queryTerms.join("|")+")", "g"),
                 replRegexp = self.get("hiliteTpl")
                     .replace(/\$/g, '\\$')
                     .replace(/\{term\}/g, '$1');
@@ -642,8 +642,8 @@ function regexpEscape (text) {
 }
 
 
-}, '@VERSION@' ,{requires:['widget','gallery-ac-plugin']});
+}, 'gallery-2010.01.27-20' ,{requires:['widget','gallery-ac-plugin']});
 
 
-YUI.add('gallery-autocomplete', function(Y){}, '@VERSION@' ,{use:['gallery-ac-plugin']});
+YUI.add('gallery-autocomplete', function(Y){}, 'gallery-2010.01.27-20' ,{use:['gallery-ac-plugin']});
 
