@@ -1,27 +1,32 @@
 YUI.add('gallery-overlay-modal', function(Y) {
 
-	/**
+	/*!
 	 * Overlay Modal Plugin
 	 * 
 	 * Oddnut Software
-	 * Copyright (c) 2009 Eric Ferraiuolo - http://eric.ferraiuolo.name
+	 * Copyright (c) 2009-2010 Eric Ferraiuolo - http://eric.ferraiuolo.name
 	 * YUI BSD License - http://developer.yahoo.com/yui/license.html
 	 */
 	
 	var OverlayModal,
 		OVERLAY_MODAL = 'overlayModal',
 		
+		HOST = 'host',
+		BOUNDING_BOX = 'boundingBox',
+		
 		OVERLAY = 'overlay',
 		MODAL = 'modal',
 		MASK = 'mask',
 		
-		HOST = 'host',
-		BOUNDING_BOX = 'boundingBox',
-		
 		CHANGE = 'Change',
 		
 		getCN = Y.ClassNameManager.getClassName,
-		isBoolean = Y.Lang.isBoolean;
+		isBoolean = Y.Lang.isBoolean,
+		
+		CLASSES = {
+			modal	: getCN(OVERLAY, MODAL),
+			mask	: getCN(OVERLAY, MASK)
+		};
 		
 	// *** Constructor *** //
 	
@@ -47,12 +52,7 @@ YUI.add('gallery-overlay-modal', function(Y) {
 			
 		},
 		
-		CLASSES : {
-			
-			modal : getCN(OVERLAY, MODAL),
-			mask : getCN(OVERLAY, MASK)
-			
-		}
+		CLASSES : CLASSES
 		
 	});
 	
@@ -63,6 +63,8 @@ YUI.add('gallery-overlay-modal', function(Y) {
 		// *** Instance Members *** //
 		
 		_maskNode : null,
+		_focusHandle : null,
+		_clickHandle : null,
 		
 		// *** Lifecycle Methods *** //
 		
@@ -85,13 +87,16 @@ YUI.add('gallery-overlay-modal', function(Y) {
 				this._maskNode.remove(true);
 			}
 			
-			this.get(HOST).get(BOUNDING_BOX).removeClass(OverlayModal.CLASSES.modal);
+			this._detachFocusHandle();
+			this._detachClickHandle();
+			
+			this.get(HOST).get(BOUNDING_BOX).removeClass(CLASSES.modal);
 		},
 		
 		renderUI : function () {
 			
 			this._maskNode = Y.Node.create('<div></div>');
-			this._maskNode.addClass(OverlayModal.CLASSES.mask);
+			this._maskNode.addClass(CLASSES.mask);
 			this._maskNode.setStyles({
 				position	: 'fixed',
 				width		: '100%',
@@ -101,16 +106,18 @@ YUI.add('gallery-overlay-modal', function(Y) {
 				zIndex		: '-1'
 			});
 			
-			this.get(HOST).get(BOUNDING_BOX).addClass(OverlayModal.CLASSES.modal);
+			this.get(HOST).get(BOUNDING_BOX).addClass(CLASSES.modal);
 		},
 		
 		bindUI : function () {
 			
 			this.after(MASK+CHANGE, this._afterMaskChange);
+			this.get(HOST).after('visibleChange', Y.bind(this._afterHostVisibleChange, this));
 		},
 		
 		syncUI : function () {
 			
+			this._uiSetHostVisible(this.get(HOST).get('visible'));
 			this._uiSetMask(this.get(MASK));
 		},
 		
@@ -128,13 +135,84 @@ YUI.add('gallery-overlay-modal', function(Y) {
 		
 		// *** Private Methods *** //
 		
+		_focus : function () {
+			
+			var host = this.get(HOST),
+				bb = host.get(BOUNDING_BOX),
+				oldTI = bb.get('tabIndex');
+				
+			bb.set('tabIndex', 0);
+			host.focus();
+			bb.set('tabIndex', oldTI);
+		},
+		
+		_blur : function () {
+			
+			this.get(HOST).blur();
+		},
+		
+		_uiSetHostVisible : function (visible) {
+			
+			if (visible) {
+				this._attachFocusHandle();
+				this._attachClickHandle();
+				this._focus();
+			} else {
+				this._detachFocusHandle();
+				this._detachClickHandle();
+				this._blur();
+			}
+		},
+		
 		_uiSetMask : function (mask) {
 			
+			var bb = this.get(HOST).get(BOUNDING_BOX);
+			
 			if (mask) {
-				this.get(HOST).get(BOUNDING_BOX).append(this._maskNode);
-			} else {
+				bb.append(this._maskNode);
+			} else if (this._maskNode.get('parentNode') === bb) {
 				this._maskNode.remove();
 			}
+		},
+		
+		_attachFocusHandle : function () {
+			
+			if ( ! this._focusHandle) {
+				this._focusHandle = Y.one(document).on('focus', Y.bind(function(e){
+					if ( ! this.get(HOST).get(BOUNDING_BOX).contains(e.target)) {
+						this._focus();
+					}
+				}, this));
+			}
+		},
+		
+		_attachClickHandle : function () {
+			
+			if ( ! this._clickHandle) {
+				var bb = this.get(HOST).get(BOUNDING_BOX);
+				this._clickHandle = this._maskNode.on('click', Y.bind(bb.scrollIntoView, bb, false));
+			}
+		},
+		
+		_detachFocusHandle : function () {
+			
+			if (this._focusHandle) {
+				this._focusHandle.detach();
+				this._focusHandle = null;
+			}
+		},
+		
+		_detachClickHandle : function () {
+			
+			if (this._clickHandle) {
+				this._clickHandle.detach();
+				this._clickHandle = null;
+			}
+		},
+		
+		_afterHostVisibleChange : function (e) {
+			
+			this._uiSetHostVisible(e.newVal);
 		},
 		
 		_afterMaskChange : function (e) {
@@ -147,4 +225,4 @@ YUI.add('gallery-overlay-modal', function(Y) {
 	Y.namespace('Plugin').OverlayModal = OverlayModal;
 
 
-}, 'gallery-2009.11.09-19' ,{requires:['overlay','plugin']});
+}, '@VERSION@' ,{requires:['overlay', 'plugin', 'event-focus']});
