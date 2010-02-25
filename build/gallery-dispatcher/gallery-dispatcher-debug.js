@@ -1,3 +1,5 @@
+YUI.add('gallery-dispatcher', function(Y) {
+
 /**
 * <p>The Dispatcher Node Plugin makes it easy to transform existing 
 * markup into an dispatcher element with expandable and collapsable elements, 
@@ -430,3 +432,6 @@ Y.extend(Dispatcher, Y.Base, {
 });
 
 Y.Dispatcher = Dispatcher;
+
+
+}, 'gallery-2010.02.17-20' ,{requires:['base-base', 'node-base', 'io-base', 'get', 'async-queue', 'classnamemanager']});
