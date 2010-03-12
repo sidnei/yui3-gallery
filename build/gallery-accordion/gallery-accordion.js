@@ -140,23 +140,30 @@ Accordion.ATTRS = {
      * For example, if we are using LayoutManager's instance as sourceObject, we will have to use its "resize" event as resizeEvent
      *  
      * @default "default"
-     * @type String or Object, see the description above
+     * @type String or Object
      */
 
     resizeEvent: {
         value: DEFAULT,
         validator: function( value ){
-            return (Lang.isString(value) || Lang.isObject(value));
+            if( value === DEFAULT ){
+                return true;
+            } else if( Lang.isObject(value) ){
+                if( Lang.isValue( value.sourceObject ) && Lang.isValue( value.resizeEvent ) ){
+                    return true;
+                }
+            }
+            
+            return false;
         }
     },
 
     /**
      * @attribute useAnimation
-     * @description Whether or not Accordion should use animation when expand or collapse some item
-     * The animation in Accordion is slow in IE6
+     * @description Boolean indicating that Accordion should use animation when expanding or collapsing items.
      * 
-     * @default: true
-     * @type boolean
+     * @default true
+     * @type Boolean
      */
     useAnimation: {
         value: true,
@@ -188,14 +195,19 @@ Accordion.ATTRS = {
 
     /**
      * @attribute reorderItems
-     * @description Whether or not the items in Accordion can be reordered by using drag&drop
-     * 
-     * @default true
-     * @type boolean
+     * @description Boolean indicating that items can be reordered via drag and drop.<br>
+     *
+     * Enabling items reordering requires also including the optional drag and drop modules in YUI instance:<br>
+     * 'dd-constrain', 'dd-proxy', 'dd-drop', or just 'dd'
+     *
+     * @default false
+     * @type Boolean
      */
     reorderItems: {
-        value: true,
-        validator: Lang.isBoolean
+        value: false,
+        validator: function(value){
+            return Lang.isBoolean(value) && !Lang.isUndefined( Y.DD );
+        }
     },
 
     /**
@@ -222,16 +234,12 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method initializer
      * @protected
-     * @param  config {Object} Configuration object literal for the Accordion
+     * @param config {Object} Configuration object literal for the Accordion
      */
     initializer: function( config ) {
         this._initEvents();
 
         this.after( "render", Y.bind( this._afterRender, this ) );
-
-        this._forCollapsing = {};
-        this._forExpanding = {};
-        this._animations   = {};
     },
 
     
@@ -427,13 +435,40 @@ Y.extend( Accordion, Y.Widget, {
         this.publish( ITEMREORDERED );
     },
 
+
+    /**
+     * Contains items for collapsing
+     * @property _forCollapsing
+     * @protected
+     * @type Object
+     */
+    _forCollapsing : {},
+
+
+    /**
+     * Contains items for expanding
+     * @property _forExpanding
+     * @protected
+     * @type Object
+     */
+    _forExpanding : {},
+
+
+    /**
+    * Contains currently running animations
+    * @property _animations
+    * @protected
+    * @type Object
+    */
+    _animations   : {},
+
     
     /**
      * Collection of items handles.
      * Keeps track of each items's event handle, as returned from <code>Y.on</code> or <code>Y.after</code>.
      * @property _itemHandles
      * @private
-     * @type Array
+     * @type Object
      */
     _itemsHandles: {},
     
@@ -443,7 +478,7 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _removeItemHandles
      * @protected
-     * @param {Y.AccordionItem} item The item, which handles to remove
+     * @param item {Y.AccordionItem} The item, which handles to remove
      */
     _removeItemHandles: function( item ){
         var itemHandles, itemHandle;
@@ -465,7 +500,7 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _getNodeOffsetHeight
      * @protected
-     * @param {Node|HTMLElement} node The node to gather the height from
+     * @param node {Node|HTMLElement} The node to gather the height from
      * @return {Number} The calculated height or zero in case of failure
      */
     _getNodeOffsetHeight: function( node ){
@@ -499,9 +534,9 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _setItemProperties
      * @protected
-     * @param {Y.AccordionItem} item The item, which properties should be updated
-     * @param {boolean} expanding The new value of "expanded" property
-     * @param {boolean} alwaysVisible The new value of "alwaysVisible" property
+     * @param item {Y.AccordionItem} The item, which properties should be updated
+     * @param expanding {Boolean} The new value of "expanded" property
+     * @param alwaysVisible {Boolean} The new value of "alwaysVisible" property
      */
     _setItemProperties: function( item, expanding, alwaysVisible ){
         var curAlwaysVisible, curExpanded;
@@ -528,10 +563,10 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _setItemUI
      * @protected
-     * @param {Y.AccordionItem} item The item, which user interface should be updated
-     * @param {boolean} expanding If true, the item will be marked as expanded.
+     * @param item {Y.AccordionItem} The item, which user interface should be updated
+     * @param expanding {Boolean} If true, the item will be marked as expanded.
      * If false, the item will be marked as collapsed
-     * @param {boolean} alwaysVisible If true, the item will be marked as always visible.
+     * @param alwaysVisible {Boolean} If true, the item will be marked as always visible.
      * If false, the always visible mark will be removed
      */
     _setItemUI: function( item, expanding, alwaysVisible ){
@@ -566,7 +601,7 @@ Y.extend( Accordion, Y.Widget, {
      * @param params {Event} after resizeEventChange custom event
      */
     _afterResizeEventChange: function( params ){
-        this._setUpResizing( params.newValue );
+        this._setUpResizing( params.newVal );
     },
 
     
@@ -768,7 +803,7 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _storeItemsForCollapsing
      * @protected
-     * @param {Object} itemsToBeExcluded (optional) Contains one or more <code>Y.AccordionItem</code> instances,
+     * @param itemsToBeExcluded {Object} (optional) Contains one or more <code>Y.AccordionItem</code> instances,
      * which should be not included in the list
      */
     _storeItemsForCollapsing: function( itemsToBeExcluded ){
@@ -797,8 +832,8 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _expandItem
      * @protected
-     * @param {Y.AccordionItem} item The item, which should be expanded
-     * @param {Number} height The height to which we should expand the item
+     * @param item {Y.AccordionItem} The item, which should be expanded.
+     * @param height {Number} The height to which we should expand the item
      */
     _expandItem: function( item, height ){
         var alwaysVisible = item.get( ALWAYSVISIBLE );
@@ -815,10 +850,10 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _processExpanding
      * @protected
-     * @param {Y.AccordionItem} item An <code>Y.AccordionItem</code> instance to be expanded
-     * @param {Boolean} forceSkipAnimation If true, the animation will be skipped, 
+     * @param item {Y.AccordionItem} An <code>Y.AccordionItem</code> instance to be expanded
+     * @param forceSkipAnimation {Boolean} If true, the animation will be skipped,
      * without taking in consideration Accordion's <code>useAnimation</code> setting
-     * @param {Number} height The height to which item should be expanded
+     * @param height {Number} The height to which item should be expanded
      */
     _processExpanding: function( item, height, forceSkipAnimation ){
         var anim, curAnim, animSettings, notifyOthers = false,
@@ -886,8 +921,8 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _onExpandComplete
      * @protected
-     * @param {Y.AccordionItem} item An <code>Y.AccordionItem</code> instance which has been expanded
-     * @param {Boolean} notifyOthers If true, itemExpanded event will be fired
+     * @param item {Y.AccordionItem} An <code>Y.AccordionItem</code> instance which has been expanded
+     * @param notifyOthers {Boolean} If true, itemExpanded event will be fired
      */
     _onExpandComplete: function( item, notifyOthers ){
         delete this._animations[ item ];
@@ -911,7 +946,7 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _collapseItem
      * @protected
-     * @param {Y.AccordionItem} item The item, which should be collapsed
+     * @param item {Y.AccordionItem} The item, which should be collapsed
      */
     _collapseItem: function( item ){
         this._processCollapsing( item, COLLAPSE_HEIGHT );
@@ -926,9 +961,9 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _processCollapsing
      * @protected
-     * @param {Y.AccordionItem} item An <code>Y.AccordionItem</code> instance to be collapsed
-     * @param {Number} height The height to which item should be collapsed
-     * @param {Boolean} forceSkipAnimation If true, the animation will be skipped, 
+     * @param item {Y.AccordionItem} An <code>Y.AccordionItem</code> instance to be collapsed
+     * @param height {Number} The height to which item should be collapsed
+     * @param forceSkipAnimation {Boolean} If true, the animation will be skipped,
      * without taking in consideration Accordion's <code>useAnimation</code> setting
      */
     _processCollapsing: function( item, height, forceSkipAnimation ){
@@ -997,8 +1032,8 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _onCollapseComplete
      * @protected
-     * @param {Y.AccordionItem} item An <code>Y.AccordionItem</code> instance which has been collapsed
-     * @param {Boolean} notifyOthers If true, itemCollapsed event will be fired
+     * @param item {Y.AccordionItem} An <code>Y.AccordionItem</code> instance which has been collapsed
+     * @param notifyOthers {Boolean} If true, itemCollapsed event will be fired
      */
     _onCollapseComplete: function( item, notifyOthers ){
         delete this._animations[ item ];
@@ -1022,7 +1057,7 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _initItemDragDrop
      * @protected
-     * @param {Y.AccordionItem} item An <code>Y.AccordionItem</code> instance to be set as draggable
+     * @param item {Y.AccordionItem} An <code>Y.AccordionItem</code> instance to be set as draggable
      */
     _initItemDragDrop: function( item ){
         var itemHeader, dd, bb, itemBB, ddrop;
@@ -1063,7 +1098,7 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _onDragStart
      * @protected
-     * @param {Y.DD.Drag} The drag instance of the item
+     * @param dd {Y.DD.Drag} The drag instance of the item
      * @param e {Event} the DD instance's drag:start custom event
      */
     _onDragStart: function( dd, e ){
@@ -1085,7 +1120,7 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _onDragEnd
      * @protected
-     * @param {Y.DD.Drag} The drag instance of the item
+     * @param dd {Y.DD.Drag} The drag instance of the item
      * @param e {Event} the DD instance's drag:end custom event
      */
     _onDragEnd: function( dd, e ){
@@ -1106,7 +1141,7 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _afterDragEnd
      * @protected
-     * @param {Y.DD.Drag} The drag instance of the item
+     * @param dd {Y.DD.Drag} The drag instance of the item
      * @param e {Event} the DD instance's drag:end custom event
      */
     _afterDragEnd: function( dd, e ){
@@ -1133,7 +1168,7 @@ Y.extend( Accordion, Y.Widget, {
      *
      * @method _onDropHit
      * @protected
-     * @param {Y.DD.Drag} The drag instance of the item
+     * @param dd {Y.DD.Drag} The drag instance of the item
      * @param e {Event} the DD instance's drag:drophit custom event
      */
     _onDropHit: function( dd, e) {
@@ -1262,7 +1297,7 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _afterItemExpand
      * @protected
-     * @param {EventFacade} params The event facade for the attribute change
+     * @param params {EventFacade} The event facade for the attribute change
      */
     _afterItemExpand: function( params ){
         var expanded, item, alwaysVisible, collapseOthersOnExpand;
@@ -1299,7 +1334,7 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _afterItemAlwaysVisible
      * @protected
-     * @param {EventFacade} params The event facade for the attribute change
+     * @param params {EventFacade} The event facade for the attribute change
      */
     _afterItemAlwaysVisible: function( params ){
         var item, alwaysVisible, expanded;
@@ -1343,7 +1378,7 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _afterContentHeight
      * @protected
-     * @param {EventFacade} params The event facade for the attribute change
+     * @param params {EventFacade} The event facade for the attribute change
      */
     _afterContentHeight: function( params ){
         var item, itemContentHeight, body, bodyHeight, expanded;
@@ -1367,6 +1402,47 @@ Y.extend( Accordion, Y.Widget, {
         }
     },
     
+
+    /**
+     * Handles the change of "contentUpdate" property of given item
+     *
+     * @method _afterContentUpdate
+     * @protected
+     * @param params {EventFacade} The event facade for the attribute change
+     */
+    _afterContentUpdate : function( params ){
+        var item, itemContentHeight, body, bodyHeight, expanded, auto, anim;
+
+        item = params.currentTarget;
+        auto = item.get( "contentHeight" ).method === "auto";
+        expanded = item.get( EXPANDED );
+
+        if( auto && expanded && params.src !== Y.Widget.UI_SRC ){
+            Y.later( 0, this, function(){
+                itemContentHeight = this._getItemContentHeight( item );
+
+                body = item.getStdModNode( WidgetStdMod.BODY );
+                bodyHeight = this._getNodeOffsetHeight( body );
+
+                if( itemContentHeight !== bodyHeight ){
+                    anim = this._animations[ item ];
+
+                    // stop waiting animation
+                    if( anim ){
+                        anim.stop();
+                    }
+
+                    this._adjustStretchItems();
+
+                    if( itemContentHeight < bodyHeight ){
+                        this._processCollapsing( item, itemContentHeight, !expanded );
+                    } else if( itemContentHeight > bodyHeight ){
+                        this._processExpanding( item, itemContentHeight, !expanded );
+                    }
+                }
+            } );
+        }
+    },
     
     
     /**
@@ -1376,7 +1452,7 @@ Y.extend( Accordion, Y.Widget, {
      * 
      * @method _setUpResizing
      * @protected
-     * @param {String|Object} String "default" or object with the following properties:
+     * @param value {String|Object} String "default" or object with the following properties:
      *  <dl>
      *      <dt>sourceObject</dt>
      *          <dd>An abbitrary object</dd>
@@ -1476,10 +1552,10 @@ Y.extend( Accordion, Y.Widget, {
      * registered in Accordion, the item will be added as child of the <code>parentItem</code>
      * 
      * @method addItem
-     * @param {Y.AccordionItem} item The item to be added in Accordion
-     * @param {Y.AccordionItem} parentItem (optional) This item will be the parent of the item being added
+     * @param item {Y.AccordionItem} The item to be added in Accordion
+     * @param parentItem {Y.AccordionItem} (optional) This item will be the parent of the item being added
      * 
-     * @return Boolean True in case of successfully added item, false otherwise
+     * @return {Boolean} True in case of successfully added item, false otherwise
      */
     addItem: function( item, parentItem ){
         var expanded, alwaysVisible, bodyContent, itemIndex, items, contentBox,
@@ -1582,7 +1658,8 @@ Y.extend( Accordion, Y.Widget, {
         itemHandles = {
             "expandedChange" : item.after( "expandedChange", Y.bind( this._afterItemExpand, this ) ),
             "alwaysVisibleChange" : item.after( "alwaysVisibleChange", Y.bind( this._afterItemAlwaysVisible, this ) ),
-            "contentHeightChange" : item.after( "contentHeightChange", Y.bind( this._afterContentHeight, this ) )
+            "contentHeightChange" : item.after( "contentHeightChange", Y.bind( this._afterContentHeight, this ) ),
+            "contentUpdate" : item.after( "contentUpdate", Y.bind( this._afterContentUpdate, this ) )
         };
         
         this._itemsHandles[ item ] = itemHandles;
@@ -1599,8 +1676,8 @@ Y.extend( Accordion, Y.Widget, {
      * Removes an previously registered item in Accordion
      * 
      * @method removeItem
-     * @param {Y.AccordionItem|Number} p_item The item to be removed, or its index
-     * @return Y.AccordionItem The removed item or null if not found
+     * @param p_item {Y.AccordionItem|Number} The item to be removed, or its index
+     * @return {Y.AccordionItem} The removed item or null if not found
      */
     removeItem: function( p_item ){
         var items, bb, item = null, itemIndex;
@@ -1643,10 +1720,10 @@ Y.extend( Accordion, Y.Widget, {
      * Searching for item, previously registered in Accordion
      * 
      * @method getItem
-     * @param {Number|Y.Node} param If number, this must be item's index.
+     * @param param {Number|Y.Node} If number, this must be item's index.
      * If Node, it should be the value of item's <code>contentBox</code> or <code>boundingBox</code> properties
      * 
-     * @return Y.AccordionItem The found item or null
+     * @return {Y.AccordionItem} The found item or null
      */
     getItem: function( param ){
         var items = this.get( ITEMS ), item = null;
@@ -1683,8 +1760,8 @@ Y.extend( Accordion, Y.Widget, {
      * Looking for the index of previously registered item
      * 
      * @method getItemIndex
-     * @param {Y.AccordionItem} item The item which index should be returned
-     * @return Number Item index or <code>-1</code> if item has been not found
+     * @param item {Y.AccordionItem} The item which index should be returned
+     * @return {Number} Item index or <code>-1</code> if item has been not found
      */
     getItemIndex: function( item ){
         var res = -1, items;
@@ -1812,7 +1889,7 @@ AccordionItem.NAME = AccItemName;
 AccordionItem.ATTRS = {
 
     /**
-     * @description Item's icon
+     * @description The Node, representing item's icon
      *
      * @attribute icon
      * @default null
@@ -1821,12 +1898,15 @@ AccordionItem.ATTRS = {
     icon: {
         value: null,
         validator: function( value ){
-            return value instanceof Node;
+            return this._validateIcon( value );
+        },
+        setter : function( value ) {
+            return this._setIcon( value );
         }
     },
 
     /**
-     * @description The label of the item
+     * @description The label of item
      *
      * @attribute label
      * @default "&#160;"
@@ -1838,7 +1918,7 @@ AccordionItem.ATTRS = {
     },
 
     /**
-     * @description The node, contains label
+     * @description The node, which contains item's label
      *
      * @attribute nodeLabel
      * @default null
@@ -1847,7 +1927,10 @@ AccordionItem.ATTRS = {
     nodeLabel: {
         value: null,
         validator: function( value ){
-            return value instanceof Node;
+            return this._validateNodeLabel( value );
+        },
+        setter : function( value ) {
+            return this._setNodeLabel( value );
         }
     },
 
@@ -1862,12 +1945,15 @@ AccordionItem.ATTRS = {
     iconsContainer: {
         value: null,
         validator: function( value ){
-            return value instanceof Node;
+            return this._validateIconsContainer( value );
+        },
+        setter : function( value ) {
+            return this._setIconsContainer( value );
         }
     },
 
     /**
-     * @description Icon expanded
+     * @description The Node, representing icon expanded
      *
      * @attribute iconExpanded
      * @default null
@@ -1876,13 +1962,16 @@ AccordionItem.ATTRS = {
     iconExpanded: {
         value: null,
         validator: function( value ){
-            return value instanceof Node;
+            return this._validateIconExpanded( value );
+        },
+        setter : function( value ) {
+            return this._setIconExpanded( value );
         }
     },
 
 
     /**
-     * @description Icon always visible
+     * @description The Node, representing icon always visible
      *
      * @attribute iconAlwaysVisible
      * @default null
@@ -1891,13 +1980,16 @@ AccordionItem.ATTRS = {
     iconAlwaysVisible: {
         value: null,
         validator: function( value ){
-            return value instanceof Node;
+            return this._validateIconAlwaysVisible( value );
+        },
+        setter : function( value ) {
+            return this._setIconAlwaysVisible( value );
         }
     },
 
 
     /**
-     * @description Icon close, or null if the item is not closable
+     * @description The Node, representing icon close, or null if the item is not closable
      *
      * @attribute iconClose
      * @default null
@@ -1906,7 +1998,10 @@ AccordionItem.ATTRS = {
     iconClose: {
         value: null,
         validator: function( value ){
-            return value instanceof Node;
+            return this._validateIconClose( value );
+        },
+        setter : function( value ) {
+            return this._setIconClose( value );
         }
     },
 
@@ -2000,8 +2095,8 @@ AccordionItem.ATTRS = {
     },
 
     /**
-     * @description Flag, indicated whether the item can be closed by user, or not
-     * If yes, there will be placed close icon, otherwise not
+     * @description Boolean indicating that the item can be closed by user.
+     * If true, there will be placed close icon, otherwise not
      *
      * @attribute closable
      * @default false
@@ -2027,14 +2122,7 @@ AccordionItem.ATTRS = {
  */
 AccordionItem.HTML_PARSER = {
 
-    icon: function( contentBox ){
-        var node, iconSelector;
-
-        iconSelector = HEADER_SELECTOR_SUB + C_ICON;
-        node = contentBox.query( iconSelector );
-
-        return node;
-    },
+    icon: HEADER_SELECTOR_SUB + C_ICON,
 
     label: function( contentBox ){
         var node, labelSelector, yuiConfig, label;
@@ -2057,50 +2145,15 @@ AccordionItem.HTML_PARSER = {
         return (node) ? node.get( INNER_HTML ) : null;
     },
 
-    nodeLabel: function( contentBox ){
-        var node, labelSelector;
+    nodeLabel: HEADER_SELECTOR_SUB + C_LABEL,
 
-        labelSelector = HEADER_SELECTOR_SUB + C_LABEL;
-        node = contentBox.query( labelSelector );
-
-        return node;
-    },
-
-    iconsContainer:  function( contentBox ){
-        var node, iconsContainer;
-
-        iconsContainer = HEADER_SELECTOR_SUB + C_ICONSCONTAINER;
-        node = contentBox.query( iconsContainer );
-
-        return node;
-    },
+    iconsContainer: HEADER_SELECTOR_SUB + C_ICONSCONTAINER,
     
-    iconAlwaysVisible: function( contentBox ){
-        var node, iconAlwaysVisibleSelector;
+    iconAlwaysVisible: HEADER_SELECTOR_SUB + C_ICONALWAYSVISIBLE,
 
-        iconAlwaysVisibleSelector = HEADER_SELECTOR_SUB + C_ICONALWAYSVISIBLE;
-        node = contentBox.query( iconAlwaysVisibleSelector );
+    iconExpanded: HEADER_SELECTOR_SUB + C_ICONEXPANDED,
 
-        return node;
-    },
-
-    iconExpanded: function( contentBox ){
-        var node, iconExpandedSelector;
-
-        iconExpandedSelector = HEADER_SELECTOR_SUB + C_ICONEXPANDED;
-        node = contentBox.query( iconExpandedSelector );
-
-        return node;
-    },
-
-    iconClose: function( contentBox ){
-        var node, iconCloseSelector;
-
-        iconCloseSelector = HEADER_SELECTOR_SUB + C_ICONCLOSE;
-        node = contentBox.query( iconCloseSelector );
-
-        return node;
-    },
+    iconClose: HEADER_SELECTOR_SUB + C_ICONCLOSE,
 
     expanded: function( contentBox ){
         var yuiConfig, expanded;
@@ -2400,7 +2453,7 @@ Y.extend( AccordionItem, Y.Widget, {
      * 
      * @method _labelChanged
      * @protected
-     * @param {EventFacade} params The event facade for the attribute change
+     * @param params {EventFacade} The event facade for the attribute change
      */
     _labelChanged: function( params ){
         var label;
@@ -2417,21 +2470,18 @@ Y.extend( AccordionItem, Y.Widget, {
      *
      * @method _closableChanged
      * @protected
-     * @param {EventFacade} params The event facade for the attribute change
+     * @param params {EventFacade} The event facade for the attribute change
      */
     _closableChanged: function( params ){
-        var selector, node, contentBox;
+        var iconClose;
 
         if( this.get( RENDERED ) ){
-            contentBox = this.get( CONTENT_BOX );
-        
-            selector = HEADER_SELECTOR_SUB + C_ICONCLOSE;
-            node = contentBox.query( selector );
+            iconClose = this.get( ICON_CLOSE );
 
             if( params.newVal ){
-                node.removeClass( C_ICONCLOSE_HIDDEN );
+                iconClose.removeClass( C_ICONCLOSE_HIDDEN );
             } else {
-                node.addClass( C_ICONCLOSE_HIDDEN );
+                iconClose.addClass( C_ICONCLOSE_HIDDEN );
             }
         }
     },
@@ -2445,10 +2495,10 @@ Y.extend( AccordionItem, Y.Widget, {
      * @param  config {Object} Configuration object literal for the AccordionItem
      */
     initializer: function( config ) {
-
         this.after( "labelChange",  Y.bind( this._labelChanged, this ) );
         this.after( "closableChange", Y.bind( this._closableChanged, this ) );
     },
+    
     
     /**
      * Destructor lifecycle implementation for the AccordionItem class.
@@ -2504,8 +2554,8 @@ Y.extend( AccordionItem, Y.Widget, {
     * The icon will be updated only if needed.
     * 
     * @method markAsAlwaysVisible
-    * @param {Boolean} alwaysVisible Whether or not the item should be marked as always visible
-    * @return Boolean Return true if the icon has been updated, false if there was no need to update
+    * @param alwaysVisible {Boolean} If true, the item should be marked as always visible.
+    * @return {Boolean} Return true if the icon has been updated, false if there was no need to update
     */
     markAsAlwaysVisible: function( alwaysVisible ){
         var iconAlwaysVisisble, strings;
@@ -2536,8 +2586,8 @@ Y.extend( AccordionItem, Y.Widget, {
     * The icon will be updated only if needed.
     * 
     * @method markAsExpanded
-    * @param {Boolean} expanded Whether or not the item should be marked as expanded
-    * @return Boolean Return true if the icon has been updated, false if there was no need to update
+    * @param expanded {Boolean} Boolean indicating that item should be marked as expanded.
+    * @return {Boolean} Return true if the icon has been updated, false if there was no need to update
     */
     markAsExpanded: function( expanded ){
         var strings, iconExpanded;
@@ -2568,8 +2618,8 @@ Y.extend( AccordionItem, Y.Widget, {
     * The method will update icon only if needed.
     * 
     * @method markAsExpanding
-    * @param {Boolean} expanding Whether or not the item should be marked as expanding
-    * @return Boolean Return true if the icon has been updated, false if there was no need to update
+    * @param expanding {Boolean} Boolean indicating that the item should be marked as expanding.
+    * @return {Boolean} Return true if the icon has been updated, false if there was no need to update
     */
     markAsExpanding: function( expanding ){
         var iconExpanded = this.get( ICON_EXPANDED );
@@ -2595,8 +2645,8 @@ Y.extend( AccordionItem, Y.Widget, {
     * The method will update icon only if needed.
     * 
     * @method markAsCollapsing
-    * @param {Boolean} collapsing Whether or not the item should be marked as collapsing
-    * @return Boolean Return true if the icon has been updated, false if there was no need to update
+    * @param collapsing {Boolean} Boolean indicating that the item should be marked as collapsing.
+    * @return {Boolean} Return true if the icon has been updated, false if there was no need to update
     */
     markAsCollapsing: function( collapsing ){
         var iconExpanded = this.get( ICON_EXPANDED );
@@ -2618,11 +2668,22 @@ Y.extend( AccordionItem, Y.Widget, {
 
 
     /**
+     * Forces the item to resize as result of direct content manipulation (via 'innerHTML').
+     * This method should be invoked if 'contentHeight' property has been set to 'auto'.
+     *
+     * @method resize
+     */
+    resize : function(){
+        this.fire( "contentUpdate" );
+    },
+
+
+    /**
      * Parses and returns the yuiConfig attribute from contentBox. It must be stringified JSON object.
      * This function will be replaced with more clever solution when YUI 3.1 becomes available
      *
      * @method _getConfigDOMAttribute
-     * @param {Node} contentBox Widget's contentBox
+     * @param contentBox {Node} Widget's contentBox
      * @return {Object} The parsed yuiConfig value
      * @private
      */
@@ -2644,7 +2705,7 @@ Y.extend( AccordionItem, Y.Widget, {
      * The value must be in this format: fixed-X, where X is integer
      *
      * @method _extractFixedMethodValue
-     * @param {String} value The value to be parsed
+     * @param value {String} The value to be parsed
      * @return {Number} The parsed value or null
      * @protected
      */
@@ -2663,8 +2724,169 @@ Y.extend( AccordionItem, Y.Widget, {
         }
 
         return height;
-    }
+    },
     
+    
+    /**
+     * Validator applied to the icon attribute. Setting new value is not allowed if Accordion has been rendered.
+     *
+     * @method _validateIcon
+     * @param value {MIXED} the value for the icon attribute
+     * @return {Boolean}
+     * @protected
+     */
+    _validateIcon: function( value ) {
+        return !this.get(RENDERED) || value;
+    },
+    
+    
+    /**
+     * Validator applied to the nodeLabel attribute. Setting new value is not allowed if Accordion has been rendered.
+     *
+     * @method _validateNodeLabel
+     * @param value {MIXED} the value for the nodeLabel attribute
+     * @return {Boolean}
+     * @protected
+     */
+    _validateNodeLabel: function( value ) {
+        return !this.get(RENDERED) || value;
+    },
+    
+    
+    /**
+     * Validator applied to the iconsContainer attribute. Setting new value is not allowed if Accordion has been rendered.
+     *
+     * @method _validateIconsContainer
+     * @param value {MIXED} the value for the iconsContainer attribute
+     * @return {Boolean}
+     * @protected
+     */
+    _validateIconsContainer: function( value ) {
+        return !this.get(RENDERED) || value;
+    },
+    
+    
+    /**
+     * Validator applied to the iconExpanded attribute. Setting new value is not allowed if Accordion has been rendered.
+     *
+     * @method _validateIconExpanded
+     * @param value {MIXED} the value for the iconExpanded attribute
+     * @return {Boolean}
+     * @protected
+     */
+    _validateIconExpanded: function( value ) {
+        return !this.get(RENDERED) || value;
+    },
+    
+    
+    /**
+     * Validator applied to the iconAlwaysVisible attribute. Setting new value is not allowed if Accordion has been rendered.
+     *
+     * @method _validateIconAlwaysVisible
+     * @param value {MIXED} the value for the iconAlwaysVisible attribute
+     * @return {Boolean}
+     * @protected
+     */
+    _validateIconAlwaysVisible: function( value ) {
+        return !this.get(RENDERED) || value;
+    },
+    
+    
+    /**
+     * Validator applied to the iconClose attribute. Setting new value is not allowed if Accordion has been rendered.
+     *
+     * @method _validateIconClose
+     * @param value {MIXED} the value for the iconClose attribute
+     * @return {Boolean}
+     * @protected
+     */
+    _validateIconClose: function( value ) {
+        return !this.get(RENDERED) || value;
+    },
+    
+    
+    /**
+     * Setter applied to the input when updating the icon attribute.  Input can
+     * be a Node, raw HTMLElement, or a selector string to locate it.
+     *
+     * @method _setIcon
+     * @param value {Node|HTMLElement|String} The icon element Node or selector
+     * @return {Node} The Node if found, null otherwise.
+     * @protected
+     */
+    _setIcon: function( value ){
+        return Y.get( value ) || null;
+    },
+    
+    
+    /**
+     * Setter applied to the input when updating the nodeLabel attribute.  Input can
+     * be a Node, raw HTMLElement, or a selector string to locate it.
+     *
+     * @method _setNodeLabel
+     * @param value {Node|HTMLElement|String} The nodeLabel element Node or selector
+     * @return {Node} The Node if found, null otherwise.
+     * @protected
+     */
+    _setNodeLabel: function( value ){
+        return Y.get( value ) || null;
+    },
+    
+    
+    /**
+     * Setter applied to the input when updating the iconsContainer attribute.  Input can
+     * be a Node, raw HTMLElement, or a selector string to locate it.
+     *
+     * @method _setIconsContainer
+     * @param value {Node|HTMLElement|String} The iconsContainer element Node or selector
+     * @return {Node} The Node if found, null otherwise.
+     * @protected
+     */
+    _setIconsContainer: function( value ){
+        return Y.get( value ) || null;
+    },
+    
+    
+    /**
+     * Setter applied to the input when updating the iconExpanded attribute.  Input can
+     * be a Node, raw HTMLElement, or a selector string to locate it.
+     *
+     * @method _setIconExpanded
+     * @param value {Node|HTMLElement|String} The iconExpanded element Node or selector
+     * @return {Node} The Node if found, null otherwise.
+     * @protected
+     */
+    _setIconExpanded: function( value ){
+        return Y.get( value ) || null;
+    },
+    
+    
+    /**
+     * Setter applied to the input when updating the iconAlwaysVisible attribute.  Input can
+     * be a Node, raw HTMLElement, or a selector string to locate it.
+     *
+     * @method _setIconAlwaysVisible
+     * @param value {Node|HTMLElement|String} The iconAlwaysVisible element Node or selector
+     * @return {Node} The Node if found, null otherwise.
+     * @protected
+     */
+    _setIconAlwaysVisible: function( value ){
+        return Y.get( value ) || null;
+    },
+    
+    
+    /**
+     * Setter applied to the input when updating the iconClose attribute.  Input can
+     * be a Node, raw HTMLElement, or a selector string to locate it.
+     *
+     * @method _setIconClose
+     * @param value {Node|HTMLElement|String} The iconClose element Node or selector
+     * @return {Node} The Node if found, null otherwise.
+     * @protected
+     */
+    _setIconClose: function( value ){
+        return Y.get( value ) || null;
+    }
 });
 
 // Add WidgetStdMod's functionality to AccordionItem
@@ -2678,4 +2900,4 @@ Y.AccordionItem = AccordionItem;
 
 
 
-}, 'gallery-2009.11.09-19' ,{requires:['event', 'anim-easing', 'dd-constrain', 'dd-proxy', 'dd-drop', 'widget', 'widget-stdmod', 'json-parse']});
+}, 'gallery-2010.03.02-18' ,{requires:['event', 'anim-easing', 'widget', 'widget-stdmod', 'json-parse'], optional:['dd-constrain', 'dd-proxy', 'dd-drop']});

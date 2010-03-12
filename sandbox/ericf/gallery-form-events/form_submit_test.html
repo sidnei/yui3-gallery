@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>form submit</title>
+	</head>
+	
+	<body>
+		
+		<h1>form submit</h1>
+		
+		<form action="" method="post">
+			<button>submit form</button>
+		</form>
+		
+		<script src="../../../../yui3/build/yui/yui-debug.js"></script>
+		<script>
+			YUI({
+			
+				filter : 'DEBUG'
+			
+			}).use('event-synthetic', 'node', function(Y){
+			
+				/*!
+				 * Technique from Juriy Zaytsev via jQuery 1.4.2
+				 * http://thinkweb2.com/projects/prototype/detecting-event-support-without-browser-sniffing/
+				 */
+				function eventSupported (eventName) {
+					
+					eventName = "on" + eventName;
+					
+					var el = document.createElement("div"),
+						isSupported = (eventName in el);
+						
+					if ( ! isSupported) {
+						el.setAttribute(eventName, "return;");
+						isSupported = typeof el[eventName] === "function";
+					}
+					
+					el = null;
+					return isSupported;
+				};
+				
+				var submitSupported = eventSupported('submit'),
+					changeSupported = eventSupported('change'),
+					resetSupported = eventSupported('reset'),
+					synthSubmit;
+				
+				//if ( ! submitSupported) {
+					Y.Event.define('foo', {
+						
+						publishConfig : { emitFacade: false },
+						
+						on : function (node, subscription, fireEvent) {
+							
+							if (node.get('tagName') !== 'form'){
+								node.on('click', function(e){
+									//Y.once('submit'
+								});
+							}
+						},
+						
+						detach : function (node, subscription, fireEvent) {}
+					
+					});
+				//}
+				
+				Y.one('body').delegate('foo', function(e){
+					Y.log('submit fired');
+					e.preventDefault();
+				}, 'form');
+				
+			});
+		</script>
+		
+	</body>
+</html>
