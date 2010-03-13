@@ -11,6 +11,8 @@ YUI.add('mypage', function(Y){
 			myOverlay : {
 				requires	: ['overlay', 'gallery-overlay-modal'],
 				initializer : function(){
+					
+					Y.log('initing overlay');
 					return (new Y.Overlay({
 						width : '200px',
 						height : '150px',
@@ -75,7 +77,8 @@ YUI.add('mypage', function(Y){
 		},
 		
 		_initMySlider : function () {
-		
+			
+			Y.log('initing slider');
 			return (new Y.Slider({
 				min: 0,
 				max: 500,
