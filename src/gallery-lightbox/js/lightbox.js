@@ -157,7 +157,6 @@ YUI().add("gallery-lightbox", function (Y) {
 			
 			// Stretch overlap to fill page and fade in
 			var overlay = this.get("overlay").setStyles({ height: Y.DOM.docHeight() + "px", width: Y.DOM.docWidth() + "px" }).show();
-			
 			if (this.get("anim")) {
 				var anim = new Y.Anim({
 					node: overlay,
@@ -330,7 +329,7 @@ YUI().add("gallery-lightbox", function (Y) {
 				duration: this.get("resizeDuration"),
 				afterEnd: Y.bind(function () {
 					// Update overlay size and update nav
-					this.get("overlay").setStyle("height", Y.DOM.docWidth() + "px");
+					this.get("overlay").setStyle("height", Y.DOM.docHeight() + "px");
 					this._updateNav();
 				}, this)
 			});
