@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>Base Component Manager - Example</title>
+		
+		<style type="text/css">
+		
+			.yui3-overlay-content {
+				background: #ccc;
+				background: rgba(0,0,0,0.25);
+			}
+			
+		</style>
+	</head>
+	
+	<body class="yui3-skin-sam">
+		
+		<h1>Base Component Manager - Example</h1>
+		
+		<button id="foo">foo button</button>
+		<button id="bar">bar button</button>
+		
+		<script src="http://yui.yahooapis.com/3.1.0pr1/build/yui/yui-min.js"></script>
+		<script>
+			YUI({
+				
+				modules : {
+				
+					'gallery-base-componentmgr' : {
+						requires : ['collection'],
+						fullpath : '../../../build/gallery-base-componentmgr/gallery-base-componentmgr-debug.js'
+					},
+					
+					'mypage' : {
+						requires : ['base', 'node', 'gallery-base-componentmgr'],
+						fullpath : 'mypage.js'
+					}
+					
+				}
+				
+			}).use('mypage', function(Y){
+				
+				new Y.MyPage();
+				
+			});
+		</script>
+		
+	</body>
+</html>
