@@ -397,4 +397,4 @@ YUI().add("gallery-lightbox", function (Y) {
 		}
 	};
 	
-}, "3.0.0" , { requires : ["base", "node", "io-base", "gallery-effects"] });
+}, "3.0.0" , { requires : ["base", "node", "gallery-effects"] });
