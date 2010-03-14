@@ -55,16 +55,15 @@ YUI().add("gallery-lightbox", function (Y) {
 		}
 	};
 	
-	Y.extend(LB, Y.Widget, {
-		initializer: function (config) { },
-		
-		renderUI: function () {
+	Y.extend(LB, Y.Base, {
+		initializer: function (config) {
 			// Code inserts html at the bottom of the page that looks similar to this:
 	        //
 	        //  <div id="overlay"></div>
 	        //  <div id="lightbox">
 	        //      <div id="outerImageContainer">
 	        //          <div id="imageContainer">
+	        //              <div id="lightboxContent"></div>
 	        //              <img id="lightboxImage">
 	        //              <div style="" id="hoverNav">
 	        //                  <a href="#" id="prevLink"></a>
@@ -87,12 +86,13 @@ YUI().add("gallery-lightbox", function (Y) {
 	        //  </div>
 
 	        var objBody = Y.one(document.body);
-	
+
 			objBody.append(Y.Node.create('<div id="overlay"></div>'));
 		
 	        objBody.append(Y.Node.create('<div id="lightbox"></div>')
 				.append(Y.Node.create('<div id="outerImageContainer"></div>')
 					.append(Y.Node.create('<div id="imageContainer"></div>')
+						.append(Y.Node.create('<div id="lightboxContent" />'))
 						.append(Y.Node.create('<img id="lightboxImage" />'))
 						.append(Y.Node.create('<div id="hoverNav"></div>')
 							.append(Y.Node.create('<a id="prevLink" href="#"></a>'))
@@ -113,10 +113,8 @@ YUI().add("gallery-lightbox", function (Y) {
 					)
 				)
 			);
-		},
-		
-		bindUI: function () {
-			this._updateImageList();
+			
+			this._bindStartListener();
 			
 			Y.one("#overlay").hide().on("click", function () { this.end(); }, this);
 			Y.one("#lightbox").hide().on("click", function (evt) {
@@ -131,9 +129,7 @@ YUI().add("gallery-lightbox", function (Y) {
 			Y.one("#prevLink").on("click", function (evt) { evt.halt(); this._changeImage(this.get("activeImage") - 1); }, this);
 			Y.one("#nextLink").on("click", function (evt) { evt.halt(); this._changeImage(this.get("activeImage") + 1); }, this);
 			Y.one("#bottomNavClose").on("click", function (evt) { evt.halt(); this.end(); }, this);
-		},
-		
-		syncUI: function () {
+			
 			L.later(0, this, function () {
 				var ids = "overlay lightbox outerImageContainer imageContainer lightboxImage hoverNav prevLink nextLink loading " + 
                 "imageDataContainer imageData imageDetails caption numberDisplay bottomNav bottomNavClose";
@@ -148,9 +144,9 @@ YUI().add("gallery-lightbox", function (Y) {
 	     * Display overlay and lightbox.  If image is part of a set, add siblings to imageArray.
 	     *
 	     * @method start
-	     * @param imageLink {Node} The selected anchor node
+	     * @param selectedLink {Node} The selected anchor node
 	     */
-		start: function (imageLink) {
+		start: function (selectedLink) {
 			Y.all("select, object, embed").each(function() {
 				this.setStyle("visibility", "hidden");
 			});
@@ -172,16 +168,16 @@ YUI().add("gallery-lightbox", function (Y) {
 			var imageArray = [],
 				imageNum = 0;
 			
-			if (imageLink.get("rel") === "lightbox") {
+			if (selectedLink.get("rel") === "lightbox") {
 				// If image is NOT part of a set, add single image to imageArray
-				imageArray.push([imageLink.get("href"), imageLink.get("title")]);
+				imageArray.push([selectedLink.get("href"), selectedLink.get("title")]);
 			} else {
 				// If image is part of a set...
-				Y.all(imageLink.get("tagName") + '[href][rel="' + imageLink.get("rel") + '"]').each(function () {
+				Y.all(selectedLink.get("tagName") + '[href][rel="' + selectedLink.get("rel") + '"]').each(function () {
 					imageArray.push([this.get("href"), this.get("title")]);
 				});
 				
-				while (imageArray[imageNum][0] !== imageLink.get("href")) { imageNum++; }
+				while (imageArray[imageNum][0] !== selectedLink.get("href")) { imageNum++; }
 			}
 			
 			this.set("imageArray", imageArray);
@@ -217,7 +213,7 @@ YUI().add("gallery-lightbox", function (Y) {
 			});
 		},
 		
-		_updateImageList: function () {
+		_bindStartListener: function () {
 			Y.delegate("click", Y.bind(function (evt) {
 				evt.halt();
 				this.start(evt.currentTarget);
@@ -244,7 +240,6 @@ YUI().add("gallery-lightbox", function (Y) {
 			var imagePreloader = new Image();
 			
 			// Once image is preloaded, resize image container
-			
 			imagePreloader.onload = Y.bind(function () {
 				this.get("lightboxImage").set("src", this.get("imageArray")[imageNum][0]);
 				this._resizeImageContainer(imagePreloader.width, imagePreloader.height);
@@ -396,11 +391,10 @@ YUI().add("gallery-lightbox", function (Y) {
 	});
 	
 	// Don't expose as public.
-	Y.Lightbox = { };
-	
-	Y.Lightbox.load = function() {
-		var lightbox = new LB();
-		lightbox.render();
+	Y.Lightbox = {
+		load: function() {
+			var lightbox = new LB();
+		}
 	};
 	
-}, "3.0.0" , { requires : ["widget", "gallery-effects"] });
+}, "3.0.0" , { requires : ["base", "node", "io-base", "gallery-effects"] });
