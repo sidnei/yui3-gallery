@@ -10,20 +10,15 @@
 
 	<link rel="stylesheet" href="../assets/skins/default/lightbox.css" type="text/css" />
 
+	<link href="http://developer.yahoo.com/yui/3/examples/anim/assets//anim.css" rel="stylesheet" type="text/css">
+
 	<script src="http://yui.yahooapis.com/3.0.0/build/yui/yui-min.js"></script>
 	<script src="../../gallery-effects/js/effects.js" type="text/javascript"></script>
 	<script src="../js/lightbox.js" type="text/javascript"></script>
-
-	<script type="text/javascript">
-		filter = true ? "" : "debug";
-		YUI({ filter: filter }).use("gallery-lightbox", function(Y) {
-		    Y.on("domready", Y.Lightbox.load, Y.Lightbox);
-		});
-	</script>
 </head>
 
 <body>
-<div id="topborder"></div>
+	
 <div id="content">
 
 	<a name="example"></a>	
@@ -61,5 +56,13 @@
 </div><!-- end .section -->
 
 </div><!-- end #content -->
+
+<script type="text/javascript">
+	filter = true ? "" : "debug";
+	YUI({ filter: filter }).use("gallery-lightbox", function(Y) {
+	    Y.Lightbox.init();
+	});
+</script>
+
 </body>
 </html>
