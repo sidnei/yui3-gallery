@@ -4,15 +4,53 @@ YUI().add("gallery-effects", function (Y) {
 	
 	/**** BEGIN EXTENDING THE NODE CLASS ****/
 	
+	// Add a few helper methods to the Node class that hopefully will be added
+	// in a future release of the Node class.  They simplify showing/hiding a given node
+	// by manipulating its "display" style.
+	
 	Y.mix(
-		Y.Node.prototype, {
+		Node.prototype, {
+			/**
+		     * Display a node.
+		     *
+		     * @method show
+		     * @chainable
+		     */
 			show: function () {
 				this.setStyle("display", "");
 				return this;
 			},
 			
+			/**
+		     * Hide a node.
+		     *
+		     * @method hide
+		     * @chainable
+		     */
 			hide: function () {
 				this.setStyle("display", "none");
+				return this;
+			},
+			
+			/**
+		     * Check is a node is being shown. Specifically not called "visible"
+		     * so as not to confuse it with the visibility property.
+		     *
+		     * @method displayed
+		     * @return boolean
+		     */
+			displayed: function() {
+				return this.getStyle("display") != "none";
+			},
+			
+			/**
+		     * Toggle the display of an element.
+		     *
+		     * @method toggle
+		     * @chainable
+		     */
+			toggle: function() {
+				this[this.displayed() ? "hide" : "show"]();
 				return this;
 			}
 		}
@@ -20,8 +58,38 @@ YUI().add("gallery-effects", function (Y) {
 
 	/**** END EXTENDING THE NODE CLASS ****/
 	
-	Y.Effects = {
-		Base: function (node, configs) {
+	Y.Effects = {};
+	
+	Y.Effects.Base = function (config) {
+		Y.Effects.Base.superclass.constructor.apply(this, arguments);
+	};
+	
+	Y.extend(Y.Effects.Base, Y.Anim, {
+		
+	});
+	
+	Y.Effects.Opacity = function (config) {
+		Y.Effects.Opacity.superclass.constructor.apply(this, arguments);
+	};
+	
+	Y.extend(Y.Effects.Opacity, Y.Effects.Base, {
+		initializer: function (config) {
+			var node = this.get("node");
+			// Make this work on IE on elements without "layout"
+			if (Y.UA.ie && Y.Node.getDomNode(node).currentStyle.hasLayout) {
+				node.setStyle("zoom", 1);
+			}
+			
+			this.setAttrs({
+				from: { opacity: node.getStyle("opacity") || 0.0 },
+				to: {opacity: 1.0 }
+			});
+			
+			this.run();
+		}
+	});
+	
+	/*	Base: function (node, configs) {
 			var currentConfig = configs.shift(),
 				anim = (new Y.Anim(currentConfig)).set("node", node),
 			
@@ -77,6 +145,6 @@ YUI().add("gallery-effects", function (Y) {
 		})]);
 	};
 	
-	Y.Effects.SlideDown = function (node, config) { };
+	Y.Effects.SlideDown = function (node, config) { };*/
 
 }, "3.0.0" , { requires : ["node", "anim"] });

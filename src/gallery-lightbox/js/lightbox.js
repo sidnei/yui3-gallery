@@ -33,8 +33,8 @@ YUI().add("gallery-lightbox", function (Y) {
 	
 	/**** BEGIN EXTENDING THE NODE CLASS ****/
 	
-	// Add two helper methods to the Node class that hopefully will be added
-	// in a future release of the Node class.  They simply show/hide a given node
+	// Add a few helper methods to the Node class that hopefully will be added
+	// in a future release of the Node class.  They simplify showing/hiding a given node
 	// by manipulating its "display" style.
 	
 	Y.mix(
@@ -43,6 +43,7 @@ YUI().add("gallery-lightbox", function (Y) {
 		     * Display a node.
 		     *
 		     * @method show
+		     * @chainable
 		     */
 			show: function () {
 				this.setStyle("display", "");
@@ -53,9 +54,32 @@ YUI().add("gallery-lightbox", function (Y) {
 		     * Hide a node.
 		     *
 		     * @method hide
+		     * @chainable
 		     */
 			hide: function () {
 				this.setStyle("display", "none");
+				return this;
+			},
+			
+			/**
+		     * Check is a node is being shown. Specifically not called "visible"
+		     * so as not to confuse it with the visibility property.
+		     *
+		     * @method displayed
+		     * @return boolean
+		     */
+			displayed: function() {
+				return this.getStyle("display") != "none";
+			},
+			
+			/**
+		     * Toggle the display of an element.
+		     *
+		     * @method toggle
+		     * @chainable
+		     */
+			toggle: function() {
+				this[this.displayed() ? "hide" : "show"]();
 				return this;
 			}
 		}
