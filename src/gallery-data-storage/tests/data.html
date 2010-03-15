@@ -2,13 +2,13 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<title>Gallery Data Tests</title>
+<title>gallery-data-storage Tests</title>
 	<script src="http://yui.yahooapis.com/3.0.0/build/yui/yui-min.js"></script>
 	<script src="../js/data-storage.js" type="text/javascript"></script>
 </head>
 
 <body class="yui-skin-sam">
-<h1>Gallery Data Tests</h1>
+<h1>gallery-data-storage Tests</h1>
 <p><input type="button" value="Run Tests" id="btnRun" disabled=true></p>
 
 <span id="foo"></span>
@@ -43,35 +43,34 @@
             name: "expando",
         
             test: function() {
-				ASSERT.isTrue("expando" in Data, "Y.Node.Data is exposing the expando.");
+				ASSERT.isTrue("expando" in Data, "Y.DataStorage is exposing the expando.");
 
                 var obj = {};
 				Data.data(obj);
-				ASSERT.isTrue(Data.expando in obj, "Y.Node.Data.data adds an expando to the object.");
+				ASSERT.isTrue(Data.expando in obj, "Y.DataStorage.data adds an expando to the object.");
 
                 obj = {};
 				Data.data(obj, "test");
-				ASSERT.isFalse(Data.expando in obj, "Y.Node.Data.data did not add an expando to the object.");
+				ASSERT.isFalse(Data.expando in obj, "Y.DataStorage.data did not add an expando to the object.");
 
                 obj = {};
 				Data.data(obj, "foo", "bar");
-				ASSERT.isTrue(Data.expando in obj, "Y.Node.Data.data adds an expando to the object.");
+				ASSERT.isTrue(Data.expando in obj, "Y.DataStorage.data adds an expando to the object.");
 
                 var id = obj[Data.expando];
-				ASSERT.isFalse(id in Data.cache, "Y.Node.Data.data did not add an entry to Y.Node.Data.cache.");
-				ASSERT.areSame(id.foo, "bar", "Y.Node.Data.data worked correctly.");
+				ASSERT.isFalse(id in Data.cache, "Y.DataStorage.data did not add an entry to Y.DataStorage.cache.");
+				ASSERT.areSame(id.foo, "bar", "Y.DataStorage.data worked correctly.");
             }
         }));
 
 		Y.Test.Runner.add(new Y.Test.Case({
-            name: "Y.Node.Data.data",
+            name: "Y.DataStorage.data",
         
             test: function() {
                 var div = Y.Node.create("<div />");
 				ASSERT.isTrue(Data.data(div, "test") === undefined, "Check for no data exists");
 				
 				Data.data(div, "test", "success");
-				console.log(div, Data.data(div), Data.data(div, "test"), "success");
 				ASSERT.areSame(Data.data(div, "test"), "success", "Check for added data");
 
 				ASSERT.isTrue(Data.data(div, "notexist") === undefined, "Check for no data exists");
@@ -192,7 +191,7 @@
         }));
 
 		Y.Test.Runner.add(new Y.Test.Case({
-            name: "Y.Node.Data.removeData",
+            name: "Y.DataStorage.removeData",
         
             test: function() {
                 var div = Y.one("#foo");
