@@ -1,13 +1,13 @@
 YUI.add('gallery-overlay-modal', function(Y) {
 
-	/*!
-	 * Overlay Modal Plugin
-	 * 
-	 * Oddnut Software
-	 * Copyright (c) 2009-2010 Eric Ferraiuolo - http://eric.ferraiuolo.name
-	 * YUI BSD License - http://developer.yahoo.com/yui/license.html
-	 */
-	
+/*!
+ * Overlay Modal Plugin
+ * 
+ * Oddnut Software
+ * Copyright (c) 2009-2010 Eric Ferraiuolo - http://eric.ferraiuolo.name
+ * YUI BSD License - http://developer.yahoo.com/yui/license.html
+ */
+ 
 	var OverlayModal,
 		OVERLAY_MODAL = 'overlayModal',
 		
@@ -26,23 +26,27 @@ YUI.add('gallery-overlay-modal', function(Y) {
 		},
 		
 		supportsPosFixed = (function(){
-		
-			var testEl, hasPosFixed;
-				
-			testEl = Y.Node.create('<div></div>').setStyles({
-				position	: 'absolute',
-				top			: '-100px',
-				left		: '-100px',
-				width		: '0',
-				height		: '0'
-			});
 			
-			Y.one('body').appendChild(testEl);
-			hasPosFixed = (testEl.getY() === (testEl.setStyle('position', 'fixed').getY() - testEl.get('docScrollY')));
-			testEl.remove(true);
+			/*! IS_POSITION_FIXED_SUPPORTED - Juriy Zaytsev (kangax) - http://yura.thinkweb2.com/cft/ */
 			
-			return hasPosFixed;
-		
+			var isSupported = null,
+				el, root;
+			
+			if (document.createElement) {
+				el = document.createElement('div');
+				if (el && el.style) {
+					el.style.position = 'fixed';
+					el.style.top = '10px';
+					root = document.body;
+					if (root && root.appendChild && root.removeChild) {
+						root.appendChild(el);
+						isSupported = (el.offsetTop === 10);
+						root.removeChild(el);
+					}
+				}
+			}
+			
+			return isSupported;
 		}());
 		
 	// *** Constructor *** //
