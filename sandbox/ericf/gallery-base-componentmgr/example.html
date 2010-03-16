@@ -29,13 +29,19 @@
 				
 					'gallery-base-componentmgr' : {
 						requires : ['collection'],
-						fullpath : 'http://github.com/ericf/yui3-gallery/raw/master/build/gallery-base-componentmgr/gallery-base-componentmgr-debug.js'
+						fullpath : '../../../build/gallery-base-componentmgr/gallery-base-componentmgr-debug.js'
 					},
 					
 					'mypage' : {
 						requires : ['base', 'node', 'gallery-base-componentmgr'],
 						optional : ['overlay', 'slider', 'gallery-overlay-modal'],
 						fullpath : 'mypage.js'
+					},
+					
+					filter : 'DEBUG',
+					
+					logInclude : {
+						'baseComponentMgr' : true
 					}
 					
 				}
