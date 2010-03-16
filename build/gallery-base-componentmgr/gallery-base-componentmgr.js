@@ -15,6 +15,7 @@ YUI.add('gallery-base-componentmgr', function(Y) {
 		E_INIT_COMPONENTS = 'initComponents',
 		
 		L = Y.Lang,
+		isArray = L.isArray,
 		isString = L.isString,
 		isFunction = L.isFunction,
 		noop = function(){};
@@ -23,6 +24,15 @@ YUI.add('gallery-base-componentmgr', function(Y) {
 	
 	ComponentMgr = function (config) {
 		
+		
+		/**
+		 * Fired right after init event to allow implementers to add components to be eagerly initialized.
+		 * a <code>components</code> array is passed to subscribers whom can push on components to be initialized,
+		 * components can be referenced by string name or object reference.
+		 * 
+		 * @event initComponents
+		 * @param event {Event} The event object for initComponents; has properties:
+		 */
 		this.publish(E_INIT_COMPONENTS, {
 			defaultFn	: this._defInitComponentsFn,
 			fireOnce	: true
@@ -43,38 +53,46 @@ YUI.add('gallery-base-componentmgr', function(Y) {
 		
 		// *** Public Methods *** //
 		
+		/**
+		 * Retrieves component instance(s) by component name or reference,
+		 * any non-initialized components will be initalized.
+		 * Component instance(s) will be passed to the callback as arguments.
+		 * 
+		 * @method getComponent
+		 * @param component* {string|object} 1-n components to get/create instances of and return
+		 * @param *callback {function} callback to pass component instances to
+		 */
 		getComponent : function () {
+			
 			
 			var args = Y.Array(arguments, 0, true),
 				components = args.slice(0, -1),
 				callback = isFunction(args[args.length-1]) ? args[args.length-1] : noop,
 				instances = [],
-				requires;
+				initialized;
 			
 			if (components.length < 1) {
-				callback.call(this);
+				callback.call(this, null);
 				return;
 			}
 			
-			requires = this._getRequires(components);
+			initialized = Y.Array.partition(components, function(c){
+				var instance = this._getInstance(c);
+				instances.push(instance);
+				return instance;
+			}, this);
 			
-			if (requires.length > 0) {
-				
-				Y.use.apply(Y, requires.concat(Y.bind(function(Y){
+			if (initialized.rejects.length > 0) {
+				Y.use.apply(Y, this._getRequires(initialized.rejects).concat(Y.bind(function(Y){
+					var instances = [];
+					Y.Array.each(initialized.rejects, this._initComponent, this);
 					Y.Array.each(components, function(c){
-						instances.push(this._initComponent(c));
+						instances.push(this._getInstance(c));
 					}, this);
 					callback.apply(this, instances);
 				}, this)));
-				
 			} else {
-				
-				Y.Array.each(components, function(c){
-					c = this._getComponent(c);
-					instances.push(c ? c.instance || null : null);
-				}, this);
 				callback.apply(this, instances);
-				
 			}
 		},
 		
@@ -86,8 +104,14 @@ YUI.add('gallery-base-componentmgr', function(Y) {
 			return ( isString(c) && Y.Object.hasKey(components, c) ? components[c] : Y.Object.hasValue(c) ? c : null );
 		},
 		
+		_getInstance : function (c) {
+			
+			return ( this._getComponent(c).instance || null );
+		},
+		
 		_getRequires : function (components) {
 			
+			components = isArray(components) ? components : [components];
 			var requires = [];
 			
 			Y.Array.each(components, function(c){
