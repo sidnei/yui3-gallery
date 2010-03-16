@@ -1,5 +1,3 @@
-YUI().add("gallery-lightbox", function (Y) {
-	
 	/**
 	 * Inspired by the original Lightbox, this is a port to YUI.
 	 * See Lokesh Dhakar's original at http://www.huddletogether.com/projects/lightbox2/.
@@ -728,5 +726,3 @@ YUI().add("gallery-lightbox", function (Y) {
 			return lightboxInstance;
 		}
 	};
-	
-}, "3.0.0" , { requires : ["base", "node", "anim"] });

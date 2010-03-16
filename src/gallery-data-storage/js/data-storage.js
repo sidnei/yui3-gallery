@@ -1,4 +1,3 @@
-YUI().add("gallery-data-storage", function (Y) {
 	/**
      * The data-storage module provides a lightweight mechanism for storing data associated with Y.Node and Y.NodeList
      * instances or arbitrary JavaScript objects.  This module is inspired by and derived from the jQuery library
@@ -310,5 +309,3 @@ YUI().add("gallery-data-storage", function (Y) {
 	Y.augment(Y.NodeList, NodeListDataExt);
 	
 	Y.DataStorage = Data;
-	
-}, "3.0.0", { requires: ["node"] });
