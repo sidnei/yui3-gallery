@@ -2900,4 +2900,4 @@ Y.AccordionItem = AccordionItem;
 
 
 
-}, 'gallery-2010.03.02-18' ,{requires:['event', 'anim-easing', 'widget', 'widget-stdmod', 'json-parse'], optional:['dd-constrain', 'dd-proxy', 'dd-drop']});
+}, '@VERSION@' ,{optional:['dd-constrain', 'dd-proxy', 'dd-drop'], requires:['event', 'anim-easing', 'widget', 'widget-stdmod', 'json-parse']});

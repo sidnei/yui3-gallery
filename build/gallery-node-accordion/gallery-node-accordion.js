@@ -588,4 +588,4 @@ Y.namespace('Plugin');
 Y.Plugin.NodeAccordion = NodeAccordion;
 
 
-}, 'gallery-2010.02.17-20' ,{optional:['anim'], requires:['node-base', 'node-style', 'plugin', 'node-event-delegate', 'classnamemanager']});
+}, '@VERSION@' ,{optional:['anim'], requires:['node-base', 'node-style', 'plugin', 'node-event-delegate', 'classnamemanager']});
