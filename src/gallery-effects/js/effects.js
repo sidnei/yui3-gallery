@@ -1,7 +1,5 @@
 YUI().add("gallery-effects", function (Y) {
 
-A = Y;
-
 	var L = Y.Lang,
 	
 	AnimQueues = {
@@ -48,15 +46,29 @@ A = Y;
 		return hw;
 	},
 	
-	_animAttrList = (function () {
-		var list = [];
-		for (attr in Y.Anim.ATTRS) list.push(attr);
-		return list;
-	})(),
+	_makeClipping = function (node) {
+		if (node._overflow) return node;
+		
+		node._oveflow = node.getStyle("overflow") || "auto";
+		
+		if (node._overflow !== "hidden") {
+			node.setStyle("overflow", "hidden");
+		}
+	},
 	
-	_parseAnimConfig = function (config) {
-		return Y.mix({}, config, true, _animAttrList);
+	_undoClipping = function (node) {
+		if (!node._overflow) return node;
+		
+		node.setStyle("overflow", node._overflow === "auto" ? "" : node._overflow);
+		node._overflow = null;
+		
+		return node;
 	};
+	
+	
+	
+	
+	
 	
 	Y.mix(Y.DOM, {
 		show: function (node) {
@@ -111,84 +123,162 @@ A = Y;
 		"toggle"
 	]);
 	
-	
 	var Effects = {};
 	
 	/***
 	 * 
-	 * @class Y.Effects.Animate
+	 * @class Y.Effects.Base
 	 * @param config {Object} has of configuration name/value pairs
 	 */
-	Effects.Animate = function (config) {
-		Effects.Animate.superclass.constructor.apply(this, arguments);
+	Effects.Base = function (config) {
+		Effects.Base.superclass.constructor.apply(this, arguments);
 	};
 	
-	Y.mix(Effects.Animate, {
-		NAME: "animate",
+	Effects.Base.NAME = "base";
 	
-		ATTRS: {
-			scope: {
-				value: "global",
-				validator: L.isString
-			},
-			
-			wait: {
-				value: false, 
-				validator: L.isBoolean
-			},
-			
-			node: {
-				validator: function (v) {
-					return v instanceof Y.Node;
-				}
+	Effects.Base.ATTRS = {
+		scope: {
+			value: "global",
+			validator: L.isString
+		},
+		
+		wait: {
+			value: true,
+			validator: L.isBoolean
+		},
+		
+		queue: {
+			value: true,
+			validator: L.isBoolean
+		},
+		
+		anim: {
+			validator: function (v) {
+				return L.isArray(v) || v instanceof Y.Anim;
 			}
+		},
+		
+		node: {
+			writeOnce: true,
+			validator: function (v) {
+				return v instanceof Y.Node;
+			}
+		},
+		
+		config: {
+			validator: L.isObject
 		}
-	});
+	};
 	
-	Y.extend(Effects.Animate, Y.Base, {
+	Y.extend(Effects.Base, Y.Base, {
 		initializer: function (config) {
-			var queue = this._getQueue(),
-				anim = new Y.Anim(config);
+		
+			this.set("config", config);
+			this.set("node", Y.one(config.node));
 			
-			this.set("node", config.node);
-			this.set("anim", anim);
-			
+			this.publish("beforeSetup", { defaultFn: this._defaultBeforeSetupFn });
+			this.publish("afterSetup", { defaultFn: this._defaultAfterSetupFn });
 			this.publish("beforeStart", { defaultFn: this._defaultBeforeStartFn });
 			this.publish("end", { defaultFn: this._defaultEndFn });
-			
+		
+		
+			// Put it in the queue if we're supposed to.
+			if (this.get("queue")) {
+				this.addToQueue();
+			}
+		},
+		
+		setup: function () {},
+		
+		addToQueue: function () {
+			var queue = this._getQueue();
+				
 			queue.add({
-				fn: this._execute,
+				fn: this.run,
 				context: this,
 				autoContinue: !this.get("wait")
 			});
-		},
-		
-		run: function () {
-			var queue = this._getQueue();
 			
 			if (!queue.isRunning()) {
 				queue.run();
 			}
 		},
 		
-		_execute: function () {
-			var anim = this.get("anim");
+		run: function () {
+			
+			this.fire("beforeSetup");
+			this.setup();
+			this.fire("afterSetup");
 			
 			this.fire("beforeStart");
-
-			anim.on("end", function(){ this.fire("end" ); }, this);
-
-			anim.run();
+			
+			var anim = this.get("anim");
+			
+			if (L.isArray(anim)) {
+				anim[anim.length - 1].on("end", function () { this.fire("end"); }, this);
+				
+				Y.Array.each(anim, function (a) { a.run(); });
+			} else {
+				anim.on("end", function () { this.fire("end"); }, this);
+				anim.run();
+			}
 		},
 		
 		_getQueue: function () {
 			return AnimQueues.get(this.get("scope"));
 		},
 		
-		_defaultEndFn : function (evt) {
-			// If we told the queue to wait after finishing animation, then tell it continue
-			// now that we're done.
-			if (this.get("wait")) this._getQueue().run();
+		_defaultBeforeSetupFn: function () {},
+
+		_defaultAfterSetupFn: function () {},
+
+		_defaultBeforeStartFn: function () {},
+		
+		_defaultEndFn : function () {}
+	});
+	
+	/***
+	 * 
+	 * @class Y.Effects.Parallel
+	 * @param config {Object} has of configuration name/value pairs
+	 */
+	Effects.Parallel = function (config) {
+		Effects.Parallel.superclass.constructor.apply(this, arguments);
+	};
+	
+	Effects.Parallel.NAME = "parallel";
+	
+	Effects.Parallel.ATTRS = {
+		effects: {
+			value: [],
+			validator: L.isArray
+		}
+	};
+	
+	Y.extend(Effects.Parallel, Effects.Base, {
+		
+		run: function () {
+			this.fire("beforeStart");
+			
+			var effects = this.get("effects"),
+				config = this.get("config"),
+				node = this.get("node");
+			
+			
+			// Don't need this anymore.
+			delete config.effects;
+
+			if (effects.length) {
+				effects[effects.length - 1].on("end", function () { this.fire("end"); }, this);
+				
+				Y.Array.each(effects, function (effect) {
+					effect.set("node", node);
+					effect.set("config", Y.merge(effect.get("config"), config));
+					effect.run();
+				});
+			} else {
+				this.fire("end");
+			}
 		}
 	});
 	
@@ -198,21 +288,26 @@ A = Y;
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Opacity = function (config) {
-		
-		var node = config.node;
-		
-		config.from = {
-			opacity: config.from !== undefined ?
-				config.from : node.getStyle("opacity") || 0.0
-		};
-		config.to = {
-			opacity: config.to !== undefined ? config.to : 1.0
-		};
-		
 		Effects.Opacity.superclass.constructor.apply(this, arguments);
 	};
 	
-	Y.extend(Effects.Opacity, Effects.Animate);
+	Y.extend(Effects.Opacity, Effects.Base, {
+		
+		_defaultBeforeStartFn: function () {
+			var config = this.get("config"),
+				node = this.get("node");
+				
+				config.from = {
+					opacity: config.from !== undefined ? config.from : node.getStyle("opacity") || 0.0
+				};
+
+				config.to = {
+					opacity: config.to !== undefined ? config.to : 1.0
+				}
+
+			this.set("anim", new Y.Anim(config));
+		}
+	});
 	
 	/***
 	 * 
@@ -220,13 +315,39 @@ A = Y;
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Move = function (config) {
-
-		config.to = { xy: [config.x, config.y] };
-		
 		Effects.Move.superclass.constructor.apply(this, arguments);
 	};
 	
-	Y.extend(Effects.Move, Effects.Animate);
+	Y.extend(Effects.Move, Effects.Base, {
+		
+		_defaultBeforeStartFn: function(){
+			var config = this.get("config");
+			
+			config.to = {
+				xy: [config.x, config.y]
+			};
+			
+			this.set("anim", new Y.Anim(config));
+		}
+	});
+	
+	/***
+	 * 
+	 * @class Y.Effects.Morph
+	 * @param config {Object} has of configuration name/value pairs
+	 */
+	Effects.Morph = function (config) {
+		Effects.Morph.superclass.constructor.apply(this, arguments);
+	};
+	
+	Effects.Morph.NAME = "morph";
+	
+	Y.extend(Effects.Morph, Effects.Base, {
+
+		_defaultBeforeStartFn: function () {
+			this.set("anim", new Y.Anim(this.get("config")));
+		}
+	});
 	
 	/***
 	 * 
@@ -234,110 +355,160 @@ A = Y;
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Scale = function (config) {
-		config = Y.merge({
-			scaleX: true,
-			scaleY: true,
-			scaleContent: true,
-			scaleFromCenter: false,
-			scaleMode: "box", // 'box' or 'contents' or { } with provided values
-			scaleFrom: 100.0,
-			scaleTo: 200.0
-		}, config || {});
-		
-	    var node = config.node,
-			elementPositioning = node.getStyle("position"),
-			originalXY = node.getXY(),
-			fontSize = node.getStyle("fontSize") || "100%",
-			fontSizeType,
-			dims,
-			originalStyle = { },
-			restoreAfterFinish = config.restoreAfterFinish || false;
-				
-	    Y.Array.each(["top", "left", "width", "height", "fontSize"], function(k) {
-			originalStyle[k] = node.getStyle(k);
-	    });
-			
-		Y.Array.each(["em", "px", "%", "pt"], function(type) {
-			if (fontSize.toString().indexOf(type) > 0) {
-				fontSize = parseFloat(fontSize);
-				fontSizeType = type;
-			}
-		});
-			
-		if (config.scaleMode === "box") {
-			dims = [node.get("offsetHeight"), node.get("offsetWidth")];
-		
-		} else if (/^content/.test(config.scaleMode)) {
-			dims = [node.get("scrollHeight"), node.get("scrollWidth")];
-		
-		} else {
-			dims = [config.scaleMode.originalHeight, config.scaleMode.originalWidth];
-		}
-
-		// Build out the to and from objects that we're going to pass to the animate utility.
-		var to = {}, from = {},
-			toScaleFraction = config.scaleTo/100.0,
-			fromScaleFraction = config.scaleFrom/100.0,
-			fromWidth = dims[0] * fromScaleFraction,
-			fromHeight = dims[1] * fromScaleFraction,
-			toWidth = dims[0] * toScaleFraction,
-			toHeight = dims[1] * toScaleFraction;
-		
-		if (config.scaleContent && fontSize) {
-			from.fontSize = fontSize * fromScaleFraction + fontSizeType;
-			to.fontSize = fontSize * toScaleFraction + fontSizeType;
-		}
-		
-		if (config.scaleX) {
-			from.width = fromWidth + "px";
-			to.width = toWidth + "px";
-		}
-		
-		if (config.scaleY) {
-			from.height = fromHeight + "px";
-			to.height = toHeight + "px";
-		}
-		
-		if (config.scaleFromCenter) {
-			var fromTop = (fromHeight - dims[0]) / 2,
-				fromLeft = (fromWidth - dims[1]) / 2,
-				toTop = (toHeight - dims[0]) / 2,
-				toLeft = (toWidth - dims[1]) / 2;
-		    
-			if (elementPositioning === "absolute") {
-				if (config.scaleY) {
-					from.top = (originalXY[1] - fromTop) + "px";
-					to.top = (originalXY[1] - toTop) + "px";
-				}
-				
-				if (config.scaleX) {
-					from.left = (originalXY[0] - fromLeft) + "px";
-					to.left = (originalXY[0] - toLeft) + "px";
-		    	}
-			} else {
-				if (config.scaleY) {
-					from.top = -fromTop + "px";
-					to.top = -toTop + "px";
-				}
-				
-				if (config.scaleX) {
-					from.left = -fromLeft + "px";
-					to.left = -toLeft + "px";
-				}
-			}
-		}
-		
-		config.to = to;
-		config.from = from;
-
 		Effects.Scale.superclass.constructor.apply(this, arguments);
 		
 		this.on("end", function () {
-			if (restoreAfterFinish) this.get("node").setStyles(originalStyle);
+			if (this.get("restoreAfterFinish")) this.get("node").setStyles(this._originalStyle);
 		});
 	};
 	
-	Y.extend(Effects.Scale, Effects.Animate);
+	Effects.Scale.NAME = "scale";
+	
+	Effects.Scale.ATTRS = {
+		scaleX: {
+			value: true,
+			validator: L.isBoolean
+		},
+		
+		scaleY: {
+			value: true,
+			validator: L.isBoolean
+		},
+		
+		scaleContent: {
+			value: true,
+			validator: L.isBoolean
+		},
+		
+		scaleFromCenter: {
+			value: false,
+			validator: L.isBoolean
+		},
+		
+		scaleMode: {
+			value: "box" // 'box' or 'contents' or { } with provided values
+		},
+		
+		scaleFrom: {
+			value: 100.0,
+			validator: L.isNumber
+		},
+		
+		scaleTo: {
+			value: 200.0,
+			validator: L.isNumber
+		},
+		
+		restoreAfterFinish: {
+			value: false,
+			validator: L.isBoolean
+		}
+	};
+	
+	Y.extend(Effects.Scale, Effects.Base, {
+
+		_originalStyle: {},
+
+		_defaultBeforeStartFn: function () {
+			
+			var config = this.get("config"),
+		    	node = this.get("node"),
+				
+				scaleX = this.get("scaleX"),
+				scaleY = this.get("scaleY"),
+				scaleContent = this.get("scaleContent"),
+				scaleFromCenter = this.get("scaleFromCenter"),
+				scaleMode = this.get("scaleMode"),
+				scaleFrom = this.get("scaleFrom"),
+				scaleTo = this.get("scaleTo"),
+				restoreAfterFinish = this.get("restoreAfterFinish"),
+				
+				elementPositioning = node.getStyle("position"),
+				originalXY = node.getXY(),
+				fontSize = node.getStyle("fontSize") || "100%",
+				fontSizeType,
+				dims;
+					
+		    Y.Array.each(["top", "left", "width", "height", "fontSize"], Y.bind(function(k) {
+				this._originalStyle[k] = node.getStyle(k);
+		    }, this));
+				
+			Y.Array.each(["em", "px", "%", "pt"], function(type) {
+				if (fontSize.toString().indexOf(type) > 0) {
+					fontSize = parseFloat(fontSize);
+					fontSizeType = type;
+				}
+			});
+				
+			if (scaleMode === "box") {
+				dims = [node.get("offsetHeight"), node.get("offsetWidth")];
+			
+			} else if (/^content/.test(scaleMode)) {
+				dims = [node.get("scrollHeight"), node.get("scrollWidth")];
+			
+			} else {
+				dims = [scaleMode.originalHeight, scaleMode.originalWidth];
+			}
+	
+			// Build out the to and from objects that we're going to pass to the animate utility.
+			var to = {}, from = {},
+				toScaleFraction = scaleTo/100.0,
+				fromScaleFraction = scaleFrom/100.0,
+				fromWidth = dims[0] * fromScaleFraction,
+				fromHeight = dims[1] * fromScaleFraction,
+				toWidth = dims[0] * toScaleFraction,
+				toHeight = dims[1] * toScaleFraction;
+			
+			if (scaleContent && fontSize) {
+				from.fontSize = fontSize * fromScaleFraction + fontSizeType;
+				to.fontSize = fontSize * toScaleFraction + fontSizeType;
+			}
+			
+			if (scaleX) {
+				from.width = fromWidth + "px";
+				to.width = toWidth + "px";
+			}
+			
+			if (scaleY) {
+				from.height = fromHeight + "px";
+				to.height = toHeight + "px";
+			}
+			
+			if (scaleFromCenter) {
+				var fromTop = (fromHeight - dims[0]) / 2,
+					fromLeft = (fromWidth - dims[1]) / 2,
+					toTop = (toHeight - dims[0]) / 2,
+					toLeft = (toWidth - dims[1]) / 2;
+			    
+				if (elementPositioning === "absolute") {
+					if (scaleY) {
+						from.top = (originalXY[1] - fromTop) + "px";
+						to.top = (originalXY[1] - toTop) + "px";
+					}
+					
+					if (scaleX) {
+						from.left = (originalXY[0] - fromLeft) + "px";
+						to.left = (originalXY[0] - toLeft) + "px";
+			    	}
+				} else {
+					if (scaleY) {
+						from.top = -fromTop + "px";
+						to.top = -toTop + "px";
+					}
+					
+					if (scaleX) {
+						from.left = -fromLeft + "px";
+						to.left = -toLeft + "px";
+					}
+				}
+			}
+			
+			config.to = to;
+			config.from = from;
+			
+			this.set("anim", new Y.Anim(config));
+		}
+	});
 	
 	/***
 	 * 
@@ -345,84 +516,63 @@ A = Y;
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Highlight = function (config) {
-		var node = config.node;
-		
-		config = Y.merge({
-			startcolor: "#ff9",
-			endcolor: "#fff",
-			restorecolor: node.getStyle("backgroundColor"),
-			iterations: 1,
-			direction: "alternate"
-		}, config || {});
-			
-		if (node.getStyle("display") === "none") {
+
+		if (Y.one(config.node).getStyle("display") === "none") {
 			return;
 		}
-			
-		var oldBackgroundImage = node.getStyle("backgroundImage");
-		
-		config.from = { backgroundColor: config.startcolor },
-		config.to = { backgroundColor: config.endcolor };
 		
 		Effects.Highlight.superclass.constructor.apply(this, arguments);
+	};
+	
+	Effects.Highlight.NAME = "highlight";
+	
+	Effects.Highlight.ATTRS = {
+		startcolor: {
+			value: "#ff9",
+			validator: L.isString
+		},
 		
-		this.on("beforeStart", function () {
-			this.get("node").setStyle("backgroundImage", "none");
-		});
+		endcolor: {
+			value: "#fff",
+			validator: L.isString
+		},
 		
-		this.on("end", function () {
+		restorecolor: {
+			valueFn: function () {
+				this.get("node").getStyle("backgroundColor");
+			},
+			validator: L.isString
+		}
+	};
+	
+	Y.extend(Effects.Highlight, Effects.Base, {
+
+		_previousBackgroundImage: "",	
+
+		_defaultBeforeStartFn: function () {
+			var config = Y.merge({
+					iterations: 1,
+					direction: "alternate"
+				}, this.get("config")),
+				node = this.get("node");
+			
+			this._previousBackgroundImage = node.getStyle("backgroundImage");
+		
+			config.from = { backgroundColor: this.get("startcolor") },
+			config.to = { backgroundColor: this.get("endcolor") };
+			
+			node.setStyle("backgroundImage", "none");
+			
+			this.set("anim", new Y.Anim(config));
+		},
+		
+		_defaultEndFn: function () {
 			this.get("node").setStyles({
-				backgroundImage: oldBackgroundImage,
-				backgroundColor: config.restoreColor
+				backgroundImage: this._previousBackgroundImage,
+				backgroundColor: this.get("restoreColor")
 			});
-		});
-	};
-	
-	Y.extend(Effects.Highlight, Effects.Animate);
-	
-	/***
-	 * 
-	 * @class Y.Effects.Appear
-	 * @param config {Object} has of configuration name/value pairs
-	 */
-	Effects.Appear = function (config) {
-		var node = config.node,
-			startOpacity = !node.displayed() ? 0.0 : node.getStyle("opacity") || 0.0;;
-		
-		config = Y.merge({ from: startOpacity }, config || {});
-		
-		Effects.Appear.superclass.constructor.apply(this, arguments);
-		
-		this.on("beforeStart", function () {
-			this.get("node").setStyle("opacity", startOpacity).show();
-		});
-	};
-	
-	Y.extend(Effects.Appear, Effects.Opacity);
-	
-	/***
-	 * 
-	 * @class Y.Effects.Fade
-	 * @param config {Object} has of configuration name/value pairs
-	 */
-	Effects.Fade = function (config) {
-		var startOpacity = config.node.getStyle("opacity");
-			
-		config = Y.merge({
-			from: startOpacity || 1.0,
-			to: 0.0
-		}, config || {});
-		
-		Effects.Fade.superclass.constructor.apply(this, arguments);
-		
-		this.on("end", function () {
-			if (startOpacity !== 0) return;
-			
-			this.get("node").hide().setStyle("opacity", startOpacity);
-		});
-	};
-	
-	Y.extend(Effects.Fade, Effects.Opacity);
+		}
+	});
 	
 	/***
 	 * 
@@ -430,63 +580,171 @@ A = Y;
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Puff = function (config) {
-		var node = config.node,
-			oldStyle = {
-				opacity: node.getStyle("opacity"),
+		
+		config.effects = [
+			new Effects.Scale({ queue: false, scaleTo: 200, scaleFromCenter: true, scaleContent: true, restoreAfterFinish: true }),
+			new Effects.Opacity({ queue: false, to: 0.0 })
+		];
+		
+		config = Y.merge({
+			duration: 1.0
+		}, config);
+		
+		Effects.Puff.superclass.constructor.apply(this, arguments);
+	};
+	
+	Y.extend(Effects.Puff, Effects.Parallel, {
+		
+		_oldStyle: {},
+		
+		_defaultBeforeStartFn: function () {
+			var node = this.get("node");
+			
+			this._oldStyles = {
+			    opacity: node.getStyle("opacity"),
 			    position: node.getStyle("position"),
-			    top:  node.getStyle("top"),
+			    top: node.getStyle("top"),
 			    left: node.getStyle("left"),
 			    width: node.getStyle("width"),
 			    height: node.getStyle("height")
 			};
 			
-			scale = new Effects.Scale(Y.merge({
-				scaleFromCenter: true,
-				scaleContent: true,
-				restoreAfterFinish: true,
-				duration: 1
-			}, _parseAnimConfig(config)));
-		
-		scale.on("beforeStart", function () {
-			var node = this.get("node");
-			
-			if (node.getStyle("position") === "absolute") return;
-					
-			var region = node.get("region");
-			console.log(region);
-			node.setStyles({
-				position: "absolute",
-				top: region.top + "px",
-				left: region.left + "px",
-				width: region.width + "px",
-				height: region.height + "px"
-			});
-			console.log(node.getStyle("position"))
-		});
-		scale.run();
+		    if (node.getStyle("position") !== "absolute") {
+				var xy = node.getXY();
 
-		config = Y.merge({
-			to: 0.0,
-			duration: 1
-		}, _parseAnimConfig(config));
+				node.setStyles({
+					position: "absolute",
+					top: xy[1] + "px",
+					left: xy[0] + "px",
+					width: node.get("clientWidth") + "px",
+					height: node.get("clientHeight") + "px"
+				});
+			}
+		},
 		
-		Effects.Puff.superclass.constructor.apply(this, arguments);
+		_defaultEndFn: function () {
+			this.get("node").hide().setStyles(this._oldStyles);
+		}
+	});
+	
+	/***
+	 * 
+	 * @class Y.Effects.Appear
+	 * @param config {Object} has of configuration name/value pairs
+	 */  	
+	Effects.Appear = function (config) {
+		var node = Y.one(config.node),
+			startOpacity = !node.displayed() ? 0.0 : node.getStyle("opacity") || 0.0;
 		
-		this.on("end", function () {
-			//this.get("node").hide().setStyles(oldStyle);
-		});
+		config.effects = [
+			new Y.Effects.Opacity({ queue: false, from: startOpacity, to: 1.0 })
+		];
+		
+		Effects.Appear.superclass.constructor.apply(this, arguments);
+		
+		this._startOpacity = startOpacity;
 	};
 	
-	Y.extend(Effects.Puff, Effects.Opacity);
+	Y.extend(Effects.Appear, Effects.Parallel, {
+		
+		_startOpacity: 0.0,
+		
+		_defaultBeforeStartFn: function () {
+			this.get("node").setStyle("opacity", this._startOpacity).show();			
+		}
+	});
+	
+	/***
+	 * 
+	 * @class Y.Effects.Fade
+	 * @param config {Object} has of configuration name/value pairs
+	 */
+	Effects.Fade = function (config) {
+		var oldOpacity = Y.one(config.node).getStyle("opacity");
+
+		config.effects = [
+			new Y.Effects.Opacity({ queue: false, from: oldOpacity || 1.0, to: 0.0 })
+		];
+		
+		Effects.Fade.superclass.constructor.apply(this, arguments);
+		
+		this._oldOpacity = oldOpacity;
+	};
+	
+	Y.extend(Effects.Fade, Effects.Parallel, {
+		
+		_oldOpacity: 1.0,
+		
+		_defaultEndFn: function () {
+			this.get("node").hide().setStyle("opacity", this._oldOpacity);			
+		}
+	});
+	
+	/***
+	 * 
+	 * @class Y.Effects.BlindUp
+	 * @param config {Object} has of configuration name/value pairs
+	 */
+	Effects.BlindUp = function (config) {
+		config.effects = [
+			new Y.Effects.Scale({ queue:false, scaleTo: 0, scaleX: false, restoreAfterFinish: true })
+		];
+		
+		Effects.BlindUp.superclass.constructor.apply(this, arguments);
+	};
+	
+	Y.extend(Effects.BlindUp, Effects.Parallel, {
+		
+		_defaultEndFn: function () {
+			_undoClipping(this.get("node").hide());
+		}
+	});
+	
+	/***
+	 * 
+	 * @class Y.Effects.BlindDown
+	 * @param config {Object} has of configuration name/value pairs
+	 */
+	Effects.BlindDown = function (config) {
+		var hw = getHeightAndWidthRegardlessOfDisplay(Y.one(config.node));
+		
+		config.effects = [
+			new Y.Effects.Scale(Y.merge({
+				queue:false,
+				scaleTo: 100,
+				scaleContent: false,
+				scaleX: false,
+				scaleFrom: 0,
+				scaleMode: { originalHeight: hw[1], originalWidth: hw[0] },
+				restoreAfterFinish: true
+			}))
+		];
+		
+		Effects.BlindDown.superclass.constructor.apply(this, arguments);
+	};
+	
+	Y.extend(Effects.BlindDown, Effects.Parallel, {
+		
+		_defaultBeforeStartFn: function () {
+			_makeClipping(this.get("node"));
+			this.get("node").setStyle("height", "0px").show();
+		},
+		
+		_defaultEndFn: function () {
+			_undoClipping(this.get("node"));
+		}
+	});
 	
 	Y.Effects = Effects;
+	
+	return;
 	
 	/*********************************
 	 * ADD METHODS TO THE NODE CLASS
 	 *********************************/
 	
 	var ExtObj = {},
-		effects = "animate opacity move scale highlight appear fade puff".split(" ");
+		effects = "move scale highlight appear fade puff blindUp blindDown".split(" ");
 	
 	Y.Array.each(effects, function (effect) {
 		ExtObj[effect] = function (node, config) {
@@ -498,298 +756,5 @@ A = Y;
 	});
 	
 	Y.Node.importMethod(ExtObj, effects);
-	
-	return;
-	
-	// Add a few helper methods to the Node class that hopefully will be added
-	// in a future release of the Node class.  They simplify showing/hiding a given node
-	// by manipulating its "display" style.
-	
-	Y.mix(Y.Node.prototype, {
-		
-		animate: function (config) {
-			var queue = AnimQueues.get(config.scope || "global");
-			
-			config.node = this;
-			
-			queue.add({
-				fn: function () {
-					if (config.beforeStartFn) config.beforeStartFn.call(config.node);
-
-					var anim = new Y.Anim(config);
-					
-					// Once we're done running, get the next item from the queue and continue.
-					anim.on("end", queue.run, queue);
-					if (config.endFn) anim.on("end", config.endFn, config.node);
-
-					anim.run();
-				},
-				
-				autoContinue: config.wait !== undefined ? !config.wait : true
-			});
-			
-			if (!queue.isRunning()) {
-				queue.run();
-			}
-
-			return this;
-		},
-		
-		opacity: function (config) {
-			config.from = { opacity: config.from !== undefined ? config.from : this.getStyle("opacity") || 0.0 };
-			config.to = { opacity: config.to !== undefined ? config.to : 1.0 };
-			
-			return this.animate(config);
-		},
-		
-		morph: function (config) {
-			config.to = config.style;
-			
-			return this.animate(config);
-		},
-		
-		move: function (config) {
-			config.to = { xy: [config.x, config.y] };
-			
-			return this.animate(config);
-		},
-		
-		scale: function(scalePercent, config) {
-			config = Y.merge({
-				scaleX: true,
-				scaleY: true,
-				scaleContent: true,
-				scaleFromCenter: false,
-				scaleMode: "box", // 'box' or 'contents' or { } with provided values
-				scaleFrom: 100.0,
-				scaleTo:   scalePercent
-			}, config || { });
-			
-		    var elementPositioning = this.getStyle("position"),
-				originalXY = this.getXY(),
-				fontSize = this.getStyle("fontSize") || "100%",
-				fontSizeType,
-				dims,
-				originalStyle = { },
-				restoreAfterFinish = config.restoreAfterFinish || false;
-				
-		    Y.Array.each(["top", "left", "width", "height", "fontSize"], Y.bind(function(k) {
-				originalStyle[k] = this.getStyle(k);
-		    }, this));
-			
-			Y.Array.each(["em", "px", "%", "pt"], function(type) {
-				if (fontSize.toString().indexOf(type) > 0) {
-					fontSize = parseFloat(fontSize);
-					fontSizeType = type;
-				}
-			});
-			
-			if (config.scaleMode === "box") {
-				dims = [this.get("offsetHeight"), this.get("offsetWidth")];
-			
-			} else if (/^content/.test(config.scaleMode)) {
-				dims = [this.get("scrollHeight"), this.get("scrollWidth")];
-			
-			} else {
-				dims = [config.scaleMode.originalHeight, config.scaleMode.originalWidth];
-			}
-
-			// Build out the to and from objects that we're going to pass to the animate utility.
-			var to = {}, from = {},
-				toScaleFraction = config.scaleTo/100.0,
-				fromScaleFraction = config.scaleFrom/100.0,
-				fromWidth = dims[0] * fromScaleFraction,
-				fromHeight = dims[1] * fromScaleFraction,
-				toWidth = dims[0] * toScaleFraction,
-				toHeight = dims[1] * toScaleFraction;
-			
-			if (config.scaleContent && fontSize) {
-				from.fontSize = fontSize * fromScaleFraction + fontSizeType;
-				to.fontSize = fontSize * toScaleFraction + fontSizeType;
-			}
-			
-			if (config.scaleX) {
-				from.width = fromWidth + "px";
-				to.width = toWidth + "px";
-			}
-			
-			if (config.scaleY) {
-				from.height = fromHeight + "px";
-				to.height = toHeight + "px";
-			}
-			
-			if (config.scaleFromCenter) {
-				var fromTop = (fromHeight - dims[0]) / 2,
-					fromLeft = (fromWidth - dims[1]) / 2,
-					toTop = (toHeight - dims[0]) / 2,
-					toLeft = (toWidth - dims[1]) / 2;
-			    
-				if (elementPositioning === "absolute") {
-					if (config.scaleY) {
-						from.top = (originalXY[1] - fromTop) + "px";
-						to.top = (originalXY[1] - toTop) + "px";
-					}
-					
-					if (config.scaleX) {
-						from.left = (originalXY[0] - fromLeft) + "px";
-						to.left = (originalXY[0] - toLeft) + "px";
-			    	}
-				} else {
-					if (config.scaleY) {
-						from.top = -fromTop + "px";
-						to.top = -toTop + "px";
-					}
-					
-					if (config.scaleX) {
-						from.left = -fromLeft + "px";
-						to.left = -toLeft + "px";
-					}
-				}
-			}
-			
-			// Handle the fact that we can have multiple callbacks.
-			var previousEndFn = config.endFn;
-			
-			config.endFn = function () {
-				if (restoreAfterFinish) this.setStyles(originalStyle);
-				
-				if (previousEndFn) previousEndFn.apply(this);
-			}
-			
-			return this.animate(Y.merge({
-				node: this,
-				to: to,
-				from: from
-			}, config || {}));
-		},
-		
-		highlight: function (config) {
-		    config = Y.merge({
-				startcolor: "#ff9",
-				endcolor: "#fff",
-				restorecolor: this.getStyle("backgroundColor")
-			}, config || {});
-			
-			if (this.getStyle("display") === "none") {
-				return this;
-			}
-			
-			// var oldBackgroundImage = this.getStyle("backgroundImage");
-			
-			this.setStyle("backgroundImage", "none");
-			
-			var from = { backgroundColor: config.endcolor },
-				to = { backgroundColor: config.startcolor };
-			
-			return this.animate(Y.merge(config, { from: from, to: to, wait: true }))
-					.animate(Y.merge(config, { from: to, to: from }));
-		},
-		
-		appear: function (config) {
-			var startOpacity = !this.displayed() ? 0.0 : this.getStyle("opacity") || 0.0;
-			
-			return this.opacity(Y.merge({
-				from: startOpacity,
-				beforeStartFn: function () { this.setStyle("opacity", startOpacity).show(); }
-			}, config || {}));
-		},
-		
-		fade: function (config) {
-			var startOpacity = this.getStyle("opacity");
-			
-			return this.opacity(Y.merge({
-				from: startOpacity || 1.0,
-				to: 0.0,
-				endFn: function () {
-					if (startOpacity !== 0) return;
-					this.hide().setStyle("opacity", startOpacity);
-				}
-			}, config || {}));
-		},
-		
-		puff: function (config) {
-			var oldStyle = {
-				opacity: this.getStyle("opacity"),
-			    position: this.getStyle("position"),
-			    top:  this.getStyle("top"),
-			    left: this.getStyle("left"),
-			    width: this.getStyle("width"),
-			    height: this.getStyle("height")
-			};
-			
-			return this
-				.scale(200, Y.merge({
-					beforeStartFn: function () {
-						if (this.getStyle("position") === "absolute") return;
-						
-						var region = Y.DOM.region(Y.Node.getDOMNode(node)); //.get("region");
-						this.setStyles({
-							position: "absolute",
-							top: region.top + "px",
-							left: region.left + "px",
-							width: region.width + "px",
-							height: region.height + "px"
-						});
-					},
-					scaleFromCenter: true,
-					scaleContent: true,
-					restoreAfterFinish: true,
-					duration: 1
-				}, config))
-				
-				.opacity(Y.merge({
-					to: 0.0,
-					duration: 1,
-					endFn : function () {
-						this.hide().setStyles(oldStyle);
-					}
-				}, config));
-		},
-		
-		blindUp: function (config) {
-			this._makeClipping();
-			
-			return this.scale(0, Y.merge({
-				scaleX: false,
-				restoreAfterFinish: true,
-				endFn: function() { this.hide()._undoClipping(); }
-			}, config));
-		},
-		
-		blindDown: function (config) {
-			var hw = getHeightAndWidthRegardlessOfDisplay(this);
-
-			return this.scale(100, Y.merge({
-				scaleContent: false,
-				scaleX: false,
-				scaleFrom: 0,
-				scaleMode: { originalHeight: hw[1], originalWidth: hw[0] },
-				restoreAfterFinish: true,
-				beforeStartFn: function () { this._makeClipping().setStyle("height", "0px").show(); },
-				endFn: function() { this._undoClipping(); }
-			}, config));
-		},
-		
-		_makeClipping: function () {
-			if (this._overflow) return this;
-			
-			this._oveflow = this.getStyle("overflow") || "auto";
-			
-			if (this._overflow !== "hidden") {
-				this.setStyle("overflow", "hidden");
-			}
-			
-			return this;
-		},
-		
-		_undoClipping: function () {
-			if (!this._overflow) return this;
-			
-			this.setStyle("overflow", this._overflow === "auto" ? "" : this._overflow);
-			element._overflow = null;
-			
-			return this;
-		}
-	});
 
 }, "3.0.0" , { requires : ["node", "anim", "async-queue"] });

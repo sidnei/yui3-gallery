@@ -15,8 +15,6 @@
 			background-color:red;
 			width:100px;
 			height:100px;
-			/*padding:10px;*/
-			margin:10px;			
 		}
 		#highlight {
 			background-color:white;
@@ -34,35 +32,49 @@
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
 			Y.one("#animate").animate({ to: { opacity: 0.0 } });
 		});
-	</script
+	</script>
 	
-	<h2>Y.Node.opacity()</h2>
+	<h2>Y.Node.Opacity()</h2>
 	<div class="example">
 		<div class="box" id="opacity"></div>
 	</div>
 	<script type="text/javascript">
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			Y.one("#opacity").opacity({ from: 1.0, to: 0.0, duration: 2, wait: true }).opacity({ from: 0.0, to: 1.0, duration: 5 });
+			new Y.Effects.Opacity({ node: "#opacity", from: 1.0, to: 0.0, duration: 2 });
+			//Y.one("#opacity").opacity({ from: 1.0, to: 0.0, duration: 2, wait: true }).opacity({ from: 0.0, to: 1.0, duration: 5 });
 		});
 	</script>
 	
-	<h2>Y.Node.move()</h2>
+	<h2>Y.Node.Move()</h2>
 	<div class="example">
 		<div class="box" id="move"></div>
 	</div>
 	<script type="text/javascript">
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			Y.one("#move").move({ x: 200, y: 200 });
+			new Y.Effects.Move({ node: "#move", x: 200, y: 200 });
+			//Y.one("#move").move({ x: 200, y: 200 });
 		});
-	</script>-->
+	</script>
 	
-	<!--<h2>Y.Node.scale()</h2>
+	<h2>Y.Node.Morph()</h2>
+	<div class="example">
+		<div class="box" id="morph">Some text.</div>
+	</div>
+	<script type="text/javascript">
+		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
+			new Y.Effects.Morph({ node: "#morph", to: { backgroundColor: "blue", color: "white" } });
+			//Y.one("#move").morph({ to: { backgroundColor: "blue", color: "white" } });
+		});
+	</script>
+	
+	<h2>Y.Node.Scale()</h2>
 	<div class="example">
 		<div class="box" id="scale" style="position:relative;">This is some text to see what happens.</div>
 	</div>
 	<script type="text/javascript">
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			Y.one("#scale").scale({ scaleTo: 250, scaleFromCenter: true });
+			new Y.Effects.Scale({ node: "#scale", scaleTo: 250, scaleFromCenter: true });
+			//Y.one("#scale").scale({ scaleTo: 250, scaleFromCenter: true });
 		});
 	</script>
 	
@@ -72,7 +84,8 @@
 	</div>
 	<script type="text/javascript">
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			Y.one("#highlight").highlight({ duration: 2 });
+			new Y.Effects.Highlight({ node: "#highlight", duration:3 });
+			//Y.one("#highlight").highlight({ duration: 2 });
 		});
 	</script>
 	
@@ -82,7 +95,8 @@
 	</div>
 	<script type="text/javascript">
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			Y.one("#appear").appear({ duration: 3 });
+			new Y.Effects.Appear({ node: "#appear", duration: 2 });
+			//Y.one("#appear").appear({ duration: 3 });
 		});
 	</script>
 	
@@ -92,29 +106,30 @@
 	</div>
 	<script type="text/javascript">
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			Y.one("#fade").fade({ duration: 3 });
+			new Y.Effects.Fade({ node: "#fade" });
+			//Y.one("#fade").fade({ duration: 3 });
 		});
 	</script>-->
 	
-	<h2>Y.Node.puff()</h2>
-	<h2>Y.Node.puff()</h2>
 	<h2>Y.Node.puff()</h2>
 	<div class="example">
 		<div class="box" id="puff"></div>
 	</div>
 	<script type="text/javascript">
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			Y.one("#puff").puff();
+			new Y.Effects.Puff({ node: "#puff", duration: 2 });
+			//Y.one("#puff").puff();
 		});
 	</script>
 	
-	<!--<h2>Y.Node.blindUp()</h2>
+	<h2>Y.Node.blindUp()</h2>
 	<div class="example">
 		<div class="box" id="blindup"></div>
 	</div>
 	<script type="text/javascript">
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			Y.one("#blindup").blindUp({ duration: 4 });
+			new Y.Effects.BlindUp({ node: "#blindup", duration: 4 });
+			//Y.one("#blindup").blindUp({ duration: 4 });
 		});
 	</script>
 
@@ -124,9 +139,10 @@
 	</div>
 	<script type="text/javascript">
 		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			Y.one("#blinddown").blindDown();
+			new Y.Effects.BlindDown({ node: "#blinddown" });
+			//Y.one("#blinddown").blindDown();
 		});
-	</script>-->
+	</script>
 	
 	<!--<h2>Y.Node.slideUp()</h2>
 	<div class="example">
