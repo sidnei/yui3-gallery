@@ -1,10 +1,45 @@
 YUI().add("gallery-effects", function (Y) {
 
+	/**
+	 * The Effects module provides an easy to use API to perform
+	 * animations on DOM elements as well as an extensible way to create
+	 * custom effects.  It is based on and closely follows the
+	 * Scriptaculous Effects library (http://wiki.github.com/madrobby/scriptaculous/).
+	 *
+	 * @module gallery-effects
+	 */
+
 	var L = Y.Lang,
+		DOM = Y.DOM,
+		GLOBAL = "global";
 	
-	AnimQueues = {
+	Effects = {};
+	
+	/***
+	 * Mirroring the Sciprtaculous EffectQueues object, this object manages
+	 * the AsyncQueue instances that will we use to queue and execute effects.
+	 * 
+	 * @property Y.Effects.EffectQueues
+	 * @type {Object}
+	 * @static
+	 */
+	Effects.EffectQueues = {
+		
+		/***
+		 * This property is the hash that contains all of the queues.
+		 * 
+		 * @property instances
+		 * @type {Object}
+		 */
 		instances: {},
 		
+		/***
+		 * Retrieves a particular queue by key.  If it doesn't exist, a new one is created.
+		 * 
+		 * @method get
+		 * @param key {String} look up
+		 * @return {Y.AsyncQueue} queue instances
+		 */
 		get: function (key) {
 			if (!L.isString(key)) return key;
 			
@@ -16,75 +51,175 @@ YUI().add("gallery-effects", function (Y) {
 		}
 	};
 	
-	GlobalQueue = AnimQueues.get("global"),
+	/***
+	 * The primary, global event queue.
+	 *  
+	 * @property Y.Effects.GlobalQueue
+	 * @type {Y.AsyncQueue}
+	 * @static
+	 */
+	Effects.GlobalQueue = Effects.EffectQueues.get("global");
 
-	// Helper method to handle the fact that getting the region of a display:none element won't work.	
-	getHeightAndWidthRegardlessOfDisplay = function (node) {
-		if (node.getStyle("display") !== "none") {
-			return [node.get("clientWidth"), node.get("clientHeight")];
-		}
-		
-		var originalVisibility = node.getStyle("visibility"),
-			originalPosition = node.getStyle("position"),
-			originalDisplay = node.getStyle("display"),
-			hw;
-		
-		node.setStyles({
-			visibility: "hidden",
-			position: "absolute",
-			display: "block"
-		});
-		xxx = node;
-		hw = [node.get("clientWidth"), node.get("clientHeight")];
-		
-		node.setStyles({
-			visibility: originalVisibility,
-			position: originalPosition,
-			display: originalDisplay
-		});
-		
-		return hw;
-	},
-	
-	_makeClipping = function (node) {
-		if (node._overflow) return node;
-		
-		node._oveflow = node.getStyle("overflow") || "auto";
-		
-		if (node._overflow !== "hidden") {
-			node.setStyle("overflow", "hidden");
-		}
-	},
-	
-	_undoClipping = function (node) {
-		if (!node._overflow) return node;
-		
-		node.setStyle("overflow", node._overflow === "auto" ? "" : node._overflow);
-		node._overflow = null;
-		
-		return node;
-	};
-	
-	
-	
+
+
+	/*************************************************************
+	 * 
+	 * 			B A S I C   N O D E   E X T E N S I O N S
+	 * 
+	 *************************************************************/
 	
 	
 	
 	Y.mix(Y.DOM, {
+		
+		/***
+		 * Display a node.
+		 * 
+		 * @method show
+		 */
 		show: function (node) {
 			Y.DOM.setStyle(node, "display", "");
 		},
 		
+		/***
+		 * Hide a node.
+		 * 
+		 * @method show
+		 */
 		hide: function (node) {
 			Y.DOM.setStyle(node, "display", "none");
 		},
 		
+		/**
+	     * Check is a node is being shown. Intentionally not called "visible"
+	     * so as not to confuse it with the visibility property.
+	     *
+	     * @method displayed
+	     * @return boolean
+	     */
 		displayed: function (node) {
 			return Y.DOM.getStyle(node, "display") !== "none";
 		},
 		
+		/**
+	     * Toggle the display of an element.
+	     *
+	     * @method toggle
+	     */
 		toggle: function (node) {
 			Y.DOM[Y.DOM.displayed(node) ? "hide" : "show"](node);
+		},
+		
+		/**
+	     * Get positioned offset.  This is useful for taking into account
+	     * offset relative ancestor, relative positioned nodes.
+	     *
+	     * @method getPositionedOffset
+	     */
+		getPositionedOffset: function(node) {
+			var valueT = 0, valueL = 0;
+			
+			do {
+				valueT += node.offsetTop  || 0;
+				valueL += node.offsetLeft || 0;
+				node = node.offsetParent;
+
+				if (node) {
+					if (node.tagName === "BODY") break;
+					var p = DOM.getStyle(node, "position");
+					if (p !== "static") break;
+				}
+			} while (node);
+			
+			return [valueL, valueT];
+		},
+		
+		/**
+	     * Position an element absolutely, but maintain its current position with
+	     * respect to the entire page.
+	     *
+	     * @method positionAbsolutely
+	     */
+		positionAbsolutely: function (node) {
+
+		    if (DOM.getStyle(node, "position") === "absolute") return;
+		
+		    var offsets = DOM.getPositionedOffset(node);
+
+		    DOM.setStyles(node, {
+				position: "absolute",
+				top: offsets[1] + "px",
+				left: offsets[0] + "px",
+				width: node.clientWidth + "px",
+				height: node.clientHeight + "px",
+			});
+		},
+		
+		/**
+	     * Returns an array of the dimensions of a particular element.  If the element
+	     * is not currently in the DOM tree (because "display" is "none"), then
+	     * it adjusts its styles to get the dimensions and then resets the element.
+	     *
+	     * @method toggle
+	     * @return Array
+	     */
+		getDimensions: function (node) {
+			if (DOM.displayed(node)) {
+				return [DOM.get(node, "clientWidth"), DOM.get(node, "clientHeight")];
+			}
+			
+			var vis = DOM.getStyle(node, "visibility"),
+				pos = DOM.getStyle(node, "position"),
+				dis = DOM.getStyle(node, "display"),
+				region, dim;
+			
+			DOM.setStyles(node, {
+				visibility: "hidden",
+				position: "absolute",
+				display: "block"
+			});
+	
+			region = DOM.region(node);
+			dim = [region.width, region.height];
+			
+			DOM.setStyles(node, {
+				visibility: vis,
+				position: pos,
+				display: dis
+			});
+			
+			return dim;
+		},
+		
+		/**
+	     * Make a node clippable by settings its overflow style to hidden and storing
+	     * it's previous style on the element itself.
+		 *
+	     * @method _makeClipping
+	     * @protected
+	     */
+		_makeClipping: function (node) {
+			if (node._overflow) return node;
+			
+			node._oveflow = DOM.getStyle(node, "overflow") || "auto";
+			
+			if (node._overflow !== "hidden") {
+				DOM.setStyle(node, "overflow", "hidden");
+			}
+		},
+	
+		/**
+	     * Undo the clipping of a node by resetting its overflow style which is expected
+	     * to be stored on the element.
+		 *
+	     * @method _undoClipping
+	     * @protected
+	     */
+		_undoClipping: function (node) {
+			if (!node._overflow) return;
+			
+			DOM.setStyle(node, "overflow", node._overflow === "auto" ? "" : node._overflow);
+			node._overflow = null;
 		}
 	});
 	
@@ -106,7 +241,7 @@ YUI().add("gallery-effects", function (Y) {
 		"hide",
 		
 		/**
-	     * Check is a node is being shown. Specifically not called "visible"
+	     * Check is a node is being shown. Intentionally not called "visible"
 	     * so as not to confuse it with the visibility property.
 	     *
 	     * @method displayed
@@ -120,14 +255,111 @@ YUI().add("gallery-effects", function (Y) {
 	     * @method toggle
 	     * @chainable
 	     */
-		"toggle"
+		"toggle",
+		
+		/**
+	     * Get positioned offset.  This is useful for taking into account
+	     * offset relative ancestor, relative positioned nodes.
+	     *
+	     * @method getPositionedOffset
+	     */
+		"getPositionedOffset",
+		
+		/**
+	     * Position an element absolutely, but maintain its current position with
+	     * respect to the entire page.
+	     *
+	     * @method positionAbsolutely
+	     */
+		"positionAbsolutely",
+		
+		/**
+	     * Returns an array of the dimensions of a particular element.  If the element
+	     * is not currently in the DOM tree (because "display" is "none"), then
+	     * it adjusts its styles to get the dimensions and then resets the element.
+	     *
+	     * @method toggle
+	     * @return Array
+	     */
+		"getDimensions",
+		
+		/**
+	     * Make a node clippable by settings its overflow style to hidden and storing
+	     * it's previous style on the element itself.
+		 *
+	     * @method _makeClipping
+	     * @protected
+	     * @chainnable
+	     */
+		"_makeClipping",
+		
+		/**
+	     * Undo the clipping of a node by resetting its overflow style which is expected
+	     * to be stored on the element.
+		 *
+	     * @method _undoClipping
+	     * @protected
+	     * @chainable
+	     */
+		"_undoClipping"
 	]);
 	
-	var Effects = {};
+	/**
+    * @for Effects.Base
+    * @event beforeStart
+    * @description fires before an effect is added to the queue to be processed.
+    * @param {Event} ev The beforeStart event.
+    * @type Event.Custom
+    */
+	var BEFORE_START = "beforeStart",
+	
+	/**
+    * @for Effects.Base
+    * @event beforeSetup
+    * @description fires before we call the setup method.
+    * @param {Event} ev The beforeSetup event.
+    * @type Event.Custom
+    */
+	BEFORE_SETUP = "beforeSetup",
+	
+	/**
+    * @for Effects.Base
+    * @event afterSetup
+    * @description fires after we call the setup method.
+    * @param {Event} ev The afterSetup event.
+    * @type Event.Custom
+    */
+	AFTER_SETUP = "afterSetup",
+	
+	/**
+    * @for Effects.Base
+    * @event beforeFinish
+    * @description fires before we call the finish method.
+    * @param {Event} ev The beforeFinish event.
+    * @type Event.Custom
+    */
+	BEFORE_FINISH = "beforeFinish",
+	
+	/**
+    * @for Effects.Base
+    * @event afterFinish
+    * @description fires after we call the finish method.
+    * @param {Event} ev The afterFinish event.
+    * @type Event.Custom
+    */
+	AFTER_FINISH = "afterFinish",
+	
+	// Helper list of all events.
+	EVENT_LIST = [BEFORE_START, BEFORE_SETUP, AFTER_SETUP, BEFORE_FINISH, AFTER_FINISH];	
 	
 	/***
+	 * The base class for the core effects.  The core effects define a single animation
+	 * to be done, which is, by default, executed via one of the AsyncQueue instances
+	 * in Y.Effects.EffectQueues.  This wrapper class also exposes methods to modify the
+	 * node before and after the animation.
 	 * 
 	 * @class Y.Effects.Base
+	 * @extends Y.Base
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Base = function (config) {
@@ -137,27 +369,65 @@ YUI().add("gallery-effects", function (Y) {
 	Effects.Base.NAME = "base";
 	
 	Effects.Base.ATTRS = {
+		
+		/**
+         * The scope of the effect.  This can be used to queue effects in different lists.
+         * @attribute scope
+         * @value "global"
+         * @type String
+         */
 		scope: {
 			value: "global",
 			validator: L.isString
 		},
 		
+		/**
+         * Whether or not effects behind this effect should wait for it to complete.
+         * If set to true, when this effect is started, the next effect will not automatically,
+         * be processed.
+         * 
+         * @attribute wait
+         * @value true
+         * @type boolean
+         */
 		wait: {
 			value: true,
 			validator: L.isBoolean
 		},
 		
-		queue: {
-			value: true,
+		/**
+         * Whether or not this effect is being managed externally.  If so, we won't add it to a
+         * queue to be processed and it's the responsibility of the creator to make sure the run
+         * and finish method are called.
+         * 
+         * @attribute wait
+         * @value true
+         * @type boolean
+         */
+		managed: {
+			value: false,
 			validator: L.isBoolean
 		},
 		
+		/**
+         * The animation this effect will execute.
+         * 
+         * @attribute anim
+         * @type {Y.Anim}
+         */
 		anim: {
 			validator: function (v) {
-				return L.isArray(v) || v instanceof Y.Anim;
+				return v instanceof Y.Anim;
 			}
 		},
 		
+		/**
+         * The node this effect will execute on.
+         * 
+         * @attribute node
+         * @writeOnce
+         * @type {Y.Node}
+         */
 		node: {
 			writeOnce: true,
 			validator: function (v) {
@@ -165,79 +435,151 @@ YUI().add("gallery-effects", function (Y) {
 			}
 		},
 		
+		/**
+         * The original configuration passed in.  This is parsed and normalized
+         * by core effects to create a configuration for the Y.Anim instance.
+         * 
+         * @attribute config
+         * @type {Object}
+         */
 		config: {
 			validator: L.isObject
 		}
 	};
 	
+	
+	
+	/*************************************************************
+	 * 
+	 * 					C O R E   E F F E C T S
+	 * 
+	 *************************************************************/
+	
+	
+	
 	Y.extend(Effects.Base, Y.Base, {
-		initializer: function (config) {
 		
+		/**
+         * Set the configuration and node properties appropriately.  Then publish
+         * all events and subscribe any functions that were passed in as part of the
+         * initial configuration.
+         * 
+         * Subclasses should also take care to add themselves to the queue when they're
+         * done initializing themselves.
+         * 
+         * @method initializer
+         * @param config {Object} has of configuration name/value pairs
+         */
+		initializer: function (config) {
+
 			this.set("config", config);
 			this.set("node", Y.one(config.node));
 			
-			this.publish("beforeSetup", { defaultFn: this._defaultBeforeSetupFn });
-			this.publish("afterSetup", { defaultFn: this._defaultAfterSetupFn });
-			this.publish("beforeStart", { defaultFn: this._defaultBeforeStartFn });
-			this.publish("end", { defaultFn: this._defaultEndFn });
-		
-		
-			// Put it in the queue if we're supposed to.
-			if (this.get("queue")) {
-				this.addToQueue();
-			}
+			Y.Array.each(EVENT_LIST, Y.bind(function (event) {
+				this.publish(event);
+				if (config[event]) {
+					this.on(event, config[event]);
+				}
+			}, this));
 		},
 		
+		/**
+         * All work that is necessary to setup the Y.Anim instance should be done here and well
+         * as any modifications of the element we're going to animate.
+         *
+         * 
+         * @method setup
+         */
 		setup: function () {},
 		
+		/**
+         * Add an effect to one of the effect queues.
+         * 
+         * @method addToQueue
+         */
 		addToQueue: function () {
-			var queue = this._getQueue();
+
+			if (!this.get("managed")) {
+
+				this.fire("beforeStart");
 				
-			queue.add({
-				fn: this.run,
-				context: this,
-				autoContinue: !this.get("wait")
-			});
-			
-			if (!queue.isRunning()) {
-				queue.run();
+				var queue = this._getQueue();
+				
+				queue.add({
+					fn: this.run,
+					context: this,
+					autoContinue: !this.get("wait")
+				});
+				
+				if (!queue.isRunning()) {
+					queue.run();
+				}
 			}
 		},
 		
+		/**
+         * Run the effect.
+         * 
+         * @method run
+         */
 		run: function () {
-			
+
 			this.fire("beforeSetup");
 			this.setup();
 			this.fire("afterSetup");
 			
-			this.fire("beforeStart");
-			
 			var anim = this.get("anim");
 			
-			if (L.isArray(anim)) {
-				anim[anim.length - 1].on("end", function () { this.fire("end"); }, this);
-				
-				Y.Array.each(anim, function (a) { a.run(); });
-			} else {
-				anim.on("end", function () { this.fire("end"); }, this);
-				anim.run();
+			anim.on("end", this.finish, this);
+			anim.run();
+		},
+		
+		/**
+         * Executed once the animation is complete.  If this is a managed effect,
+         * this will start the next effect.
+         * 
+         * @method finish
+         * @final
+         */
+		finish: function () {
+			
+			this.fire("beforeFinish");
+			
+			this._finish();
+			
+			// If it's a managed effect and the queue we were in isn't currently running,
+			// then execute the next effect.
+			if (this.get("managed") && !this._getQueue().isRunning()) {
+				this._getQueue().run();
 			}
+			
+			this.fire("afterFinish");
 		},
 		
+		/**
+         * Get the queue associated with this effect.
+         * 
+         * @method _getQueue
+         * @protected
+         */
 		_getQueue: function () {
-			return AnimQueues.get(this.get("scope"));
+			return Effects.EffectQueues.get(this.get("scope"));
 		},
 		
-		_defaultBeforeSetupFn: function () {},
-
-		_defaultAfterSetupFn: function () {},
-
-		_defaultBeforeStartFn: function () {},
-		
-		_defaultEndFn : function () {}
+		/**
+         * If there are any node modifications that need to happen after the animation,
+         * they should take place here.
+         * 
+         * @method _final
+         * @protected
+         */
+		_finish: function () {}
 	});
 	
 	/***
+	 * This is a special subclass of Effects.Base because it executes other Effects.Base
+	 * instances rather than an Anim instance.  This is nice because it allows you to queue
+	 * multiple effects to be executed at the same time.
 	 * 
 	 * @class Y.Effects.Parallel
 	 * @param config {Object} has of configuration name/value pairs
@@ -249,6 +591,14 @@ YUI().add("gallery-effects", function (Y) {
 	Effects.Parallel.NAME = "parallel";
 	
 	Effects.Parallel.ATTRS = {
+		
+		/**
+         * Effects to be executed.
+         * 
+         * @attribute effects
+         * @value []
+         * @type Array
+         */
 		effects: {
 			value: [],
 			validator: L.isArray
@@ -257,32 +607,58 @@ YUI().add("gallery-effects", function (Y) {
 	
 	Y.extend(Effects.Parallel, Effects.Base, {
 		
+		/**
+         * Add this effect to the queue.
+         * 
+         * @method initializer
+         * @param config {Object} has of configuration name/value pairs
+         */
+		initializer: function () {
+			this.addToQueue();
+		},
+		
+		/**
+         * Execute all of the effects this Parallel instance knows about.
+         * 
+         * @method run
+         */
 		run: function () {
-			this.fire("beforeStart");
-			
+
 			var effects = this.get("effects"),
 				config = this.get("config"),
 				node = this.get("node");
-			
-			
-			// Don't need this anymore.
-			delete config.effects;
 
+			// Do the setup stuff first.
+			this.fire("beforeSetup");
+			this.setup();
+			this.fire("afterSetup");
+			
 			if (effects.length) {
-				effects[effects.length - 1].on("end", function () { this.fire("end"); }, this);
+				// For the last effect, when we setup the animation for the last effect,
+				// we want to bind to the end event of that effect's animation to execute
+				// the finish method.
+				effects[effects.length - 1].after("animChange", function (event) {
+					event.newVal.on("end", this.finish, this);
+				}, this);
 				
+				// For each animation, set the node it will run on and merge the configuration
+				// object for that effect with the one we received for this effect and then
+				// run that effect.
 				Y.Array.each(effects, function (effect) {
-					effect.set("node", node);
 					effect.set("config", Y.merge(effect.get("config"), config));
+					
+					effect.fire("beforeStart");
 					effect.run();
 				});
 			} else {
-				this.fire("end");
+				// If there are no effects, then we're done.
+				this.finish();
 			}
 		}
 	});
 	
 	/***
+	 * Effect to animate the opacity of a node.
 	 * 
 	 * @class Y.Effects.Opacity
 	 * @param config {Object} has of configuration name/value pairs
@@ -291,25 +667,55 @@ YUI().add("gallery-effects", function (Y) {
 		Effects.Opacity.superclass.constructor.apply(this, arguments);
 	};
 	
+	Effects.Opacity.NAME = "opacity";
+	
 	Y.extend(Effects.Opacity, Effects.Base, {
 		
-		_defaultBeforeStartFn: function () {
-			var config = this.get("config"),
-				node = this.get("node");
+		/**
+         * The starting opacity for this effect.
+         * 
+         * @property effects
+         * @value 0.0
+         * @type _startOpacity
+         * @protected
+         */
+		_startOpacity: 0.0,
+		
+		/**
+		 * 
+         * @method initializer
+         * @param config {Object} has of configuration name/value pairs
+         */
+		initializer: function (config) {
+			// store the initial opacity of the node we are animating so we can reset it later.
+			this._startOpacity = this.get("node").getStyle("opacity") || 0.0;
+			
+			this.addToQueue();
+		},
+		
+		/**
+		 * Parse and normalize configuration into the animation we want to perform.
+		 * Also manipulate the node we are about to animate if necessary.
+		 * 
+         * @method setup
+         */
+		setup: function() {
+			var config = this.get("config");
 				
-				config.from = {
-					opacity: config.from !== undefined ? config.from : node.getStyle("opacity") || 0.0
-				};
+			config.from = {
+				opacity: config.from !== undefined ? config.from : this._startOpacity
+			};
 
-				config.to = {
-					opacity: config.to !== undefined ? config.to : 1.0
-				}
+			config.to = {
+				opacity: config.to !== undefined ? config.to : 1.0
+			}
 
 			this.set("anim", new Y.Anim(config));
 		}
 	});
 	
 	/***
+	 * This effect moves a node to a specific position on the page.
 	 * 
 	 * @class Y.Effects.Move
 	 * @param config {Object} has of configuration name/value pairs
@@ -318,9 +724,26 @@ YUI().add("gallery-effects", function (Y) {
 		Effects.Move.superclass.constructor.apply(this, arguments);
 	};
 	
+	Effects.Move.NAME = "move";
+	
 	Y.extend(Effects.Move, Effects.Base, {
 		
-		_defaultBeforeStartFn: function(){
+		/**
+		 * 
+         * @method initializer
+         * @param config {Object} has of configuration name/value pairs
+         */
+		initializer: function(){
+			this.addToQueue();
+		},
+		
+		/**
+		 * Parse and normalize configuration into the animation we want to perform.
+		 * Also manipulate the node we are about to animate if necessary.
+		 * 
+         * @method setup
+         */
+		setup: function () {
 			var config = this.get("config");
 			
 			config.to = {
@@ -332,6 +755,8 @@ YUI().add("gallery-effects", function (Y) {
 	});
 	
 	/***
+	 * Effect for generic mutations. This is the closest to a wrapper for the Y.Anim object
+	 * itself.
 	 * 
 	 * @class Y.Effects.Morph
 	 * @param config {Object} has of configuration name/value pairs
@@ -344,61 +769,139 @@ YUI().add("gallery-effects", function (Y) {
 	
 	Y.extend(Effects.Morph, Effects.Base, {
 
-		_defaultBeforeStartFn: function () {
+		/**
+		 * 
+         * @method initializer
+         * @param config {Object} has of configuration name/value pairs
+         */
+		initializer: function () {
+			this.addToQueue();
+		},
+		
+		/**
+		 * Parse and normalize configuration into the animation we want to perform.
+		 * Also manipulate the node we are about to animate if necessary.
+		 * 
+         * @method setup
+         */
+		setup: function () {
 			this.set("anim", new Y.Anim(this.get("config")));
 		}
 	});
 	
 	/***
+	 * Scale an object to a certain size with a number of configuration properties that
+	 * change the way the scaling takes place.
 	 * 
 	 * @class Y.Effects.Scale
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Scale = function (config) {
 		Effects.Scale.superclass.constructor.apply(this, arguments);
-		
-		this.on("end", function () {
-			if (this.get("restoreAfterFinish")) this.get("node").setStyles(this._originalStyle);
-		});
 	};
 	
 	Effects.Scale.NAME = "scale";
 	
 	Effects.Scale.ATTRS = {
+		
+		/**
+         * Whether or not to scale along the x-axis.
+         * 
+         * @attribute scaleX
+         * @value true
+         * @type boolean
+         */
 		scaleX: {
 			value: true,
 			validator: L.isBoolean
 		},
 		
+		/**
+         * Whether or not to scale along the y-axis.
+         * 
+         * @attribute scaleY
+         * @value true
+         * @type boolean
+         */
 		scaleY: {
 			value: true,
 			validator: L.isBoolean
 		},
 		
+		/**
+         * Whether or not to scale the content of the node.
+         * 
+         * @attribute scaleContent
+         * @value true
+         * @type boolean
+         */
 		scaleContent: {
 			value: true,
 			validator: L.isBoolean
 		},
 		
+		/**
+         * Whether or not to scale the node from the center.  Otherwise
+         * scaling takes place from the top left corner.
+         * 
+         * @attribute scaleFromCenter
+         * @value false
+         * @type boolean
+         */
 		scaleFromCenter: {
 			value: false,
 			validator: L.isBoolean
 		},
 		
+		/**
+         * How the scaling should take place. "box" will scale the visible area
+         * of the node, "contents" will scale the entire node.  Finally, you
+         * can control the height and width of scaling more precisely by passing an
+         * object with "originalHeight" and "originalWidth."
+         * 
+         * @attribute scaleMode
+         * @value "box"
+         * @type boolean
+         */
 		scaleMode: {
-			value: "box" // 'box' or 'contents' or { } with provided values
+			value: "box", // 'box' or 'contents' or { } with provided values
+			validator: function (v) {
+				return v === "box" || v === "contents" || L.isObject(v);
+			}
 		},
 		
+		/**
+         * The percentage of the full size to scale from.
+         * 
+         * @attribute scaleFrom
+         * @value 100.0
+         * @type Number
+         */
 		scaleFrom: {
 			value: 100.0,
 			validator: L.isNumber
 		},
 		
+		/**
+         * The percentage of the full size to scale to.
+         * 
+         * @attribute scaleTo
+         * @value 200.0
+         * @type Number
+         */
 		scaleTo: {
 			value: 200.0,
 			validator: L.isNumber
 		},
 		
+		/**
+         * Whether to restore the node once the scaling is complete.
+         * This will reset the position, size and content.
+         * 
+         * @attribute restoreAfterFinish
+         * @value false
+         * @type Number
+         */
 		restoreAfterFinish: {
 			value: false,
 			validator: L.isBoolean
@@ -407,9 +910,32 @@ YUI().add("gallery-effects", function (Y) {
 	
 	Y.extend(Effects.Scale, Effects.Base, {
 
+		/**
+         * Style we will revert to if we are restoring.
+         * 
+         * @property _originalStyle
+         * @type Object
+         * @protected
+         */
 		_originalStyle: {},
+		
+		/**
+		 * 
+         * @method initializer
+         * @param config {Object} has of configuration name/value pairs
+         */
+		initializer: function (config) {
+			console.log(config, this.get("scaleFromCenter"),this.get("scaleTo"));
+			this.addToQueue();
+		},
 
-		_defaultBeforeStartFn: function () {
+		/**
+		 * Parse and normalize configuration into the animation we want to perform.
+		 * Also manipulate the node we are about to animate if necessary.
+		 * 
+         * @method setup
+         */
+		setup: function () {
 			
 			var config = this.get("config"),
 		    	node = this.get("node"),
@@ -424,22 +950,25 @@ YUI().add("gallery-effects", function (Y) {
 				restoreAfterFinish = this.get("restoreAfterFinish"),
 				
 				elementPositioning = node.getStyle("position"),
-				originalXY = node.getXY(),
+				originalXY = node.getPositionedOffset(),
 				fontSize = node.getStyle("fontSize") || "100%",
 				fontSizeType,
 				dims;
-					
+			
+			// Save styles for later.
 		    Y.Array.each(["top", "left", "width", "height", "fontSize"], Y.bind(function(k) {
 				this._originalStyle[k] = node.getStyle(k);
 		    }, this));
-				
+			
+			// Determine the current font size and units.
 			Y.Array.each(["em", "px", "%", "pt"], function(type) {
 				if (fontSize.toString().indexOf(type) > 0) {
 					fontSize = parseFloat(fontSize);
 					fontSizeType = type;
 				}
 			});
-				
+			
+			// Figure out which dimensions we're using.
 			if (scaleMode === "box") {
 				dims = [node.get("offsetHeight"), node.get("offsetWidth")];
 			
@@ -450,7 +979,7 @@ YUI().add("gallery-effects", function (Y) {
 				dims = [scaleMode.originalHeight, scaleMode.originalWidth];
 			}
 	
-			// Build out the to and from objects that we're going to pass to the animate utility.
+			// Build out the to and from objects that we're going to pass to the Y.Anim instance.
 			var to = {}, from = {},
 				toScaleFraction = scaleTo/100.0,
 				fromScaleFraction = scaleFrom/100.0,
@@ -507,17 +1036,30 @@ YUI().add("gallery-effects", function (Y) {
 			config.from = from;
 			
 			this.set("anim", new Y.Anim(config));
+		},
+	
+		/**
+		 * Any work that needs to be done once the animation is complete, typically to
+		 * reset or manipulate node properties.
+		 * 
+         * @method _finish
+         * @protected
+         */
+		_finish: function () {
+			if (this.get("restoreAfterFinish")) this.get("node").setStyles(this._originalStyle);
 		}
 	});
 	
 	/***
+	 * Effect to highlight a node and then have the highlighting dissipate.
 	 * 
 	 * @class Y.Effects.Highlight
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Highlight = function (config) {
 
-		if (Y.one(config.node).getStyle("display") === "none") {
+		// If the node isn't being displayed, then don't bother.
+		if (!Y.one(config.node).displayed()) {
 			return;
 		}
 		
@@ -527,46 +1069,99 @@ YUI().add("gallery-effects", function (Y) {
 	Effects.Highlight.NAME = "highlight";
 	
 	Effects.Highlight.ATTRS = {
-		startcolor: {
+		
+		/**
+         * The starting color.
+         * 
+         * @attribute startColor
+         * @value "#ff9" (light yellow)
+         * @type String
+         */
+		startColor: {
 			value: "#ff9",
 			validator: L.isString
 		},
 		
-		endcolor: {
+		/**
+         * The ending color.
+         * 
+         * @attribute endColor
+         * @value "#fff" (lwhite)
+         * @type String
+         */
+		endColor: {
 			value: "#fff",
 			validator: L.isString
 		},
 		
-		restorecolor: {
-			valueFn: function () {
-				this.get("node").getStyle("backgroundColor");
-			},
+		/**
+         * The color to restore the element to after it's been animated.
+         * By default, we try to get the current background color and set
+         * it back to that.
+         * 
+         * @attribute restoreColor
+         * @type String
+         */
+		restoreColor: {
+			value: "",
 			validator: L.isString
 		}
 	};
 	
 	Y.extend(Effects.Highlight, Effects.Base, {
 
+		/**
+         * Background image of the node on start.  This is reset after the animation
+         * finishes.
+         * 
+         * @property _previousBackgroundImage
+         * @value ""
+         * @type String
+         */
 		_previousBackgroundImage: "",	
 
-		_defaultBeforeStartFn: function () {
+		/**
+		 * 
+         * @method initializer
+         * @param config {Object} has of configuration name/value pairs
+         */
+		initializer: function () {
+			this.addToQueue();
+		},
+
+		/**
+		 * Parse and normalize configuration into the animation we want to perform.
+		 * Also manipulate the node we are about to animate if necessary.
+		 * 
+         * @method setup
+         */
+		setup: function () {
 			var config = Y.merge({
 					iterations: 1,
 					direction: "alternate"
 				}, this.get("config")),
 				node = this.get("node");
 			
-			this._previousBackgroundImage = node.getStyle("backgroundImage");
-		
-			config.from = { backgroundColor: this.get("startcolor") },
-			config.to = { backgroundColor: this.get("endcolor") };
+			config.from = { backgroundColor: this.get("startColor") },
+			config.to = { backgroundColor: this.get("endColor") };
+
+			if (!this.get("restoreColor")) this.set("restoreColor", node.getStyle("backgroundColor"));
 			
+			this._previousBackgroundImage = node.getStyle("backgroundImage");
+
 			node.setStyle("backgroundImage", "none");
 			
 			this.set("anim", new Y.Anim(config));
 		},
 		
-		_defaultEndFn: function () {
+		/**
+		 * Any work that needs to be done once the animation is complete, typically to
+		 * reset or manipulate node properties.
+		 * 
+         * @method _finish
+         * @protected
+         */
+		_finish: function () {
 			this.get("node").setStyles({
 				backgroundImage: this._previousBackgroundImage,
 				backgroundColor: this.get("restoreColor")
@@ -574,33 +1169,28 @@ YUI().add("gallery-effects", function (Y) {
 		}
 	});
 	
-	/***
+	
+	
+	/*************************************************************
 	 * 
-	 * @class Y.Effects.Puff
+	 * 			  C O M B I N A T I O N   E F F E C T S
+	 * 
+	 *************************************************************/
+	
+	
+	
+	/***
+	 * Effect that create a "puff" of smoke effect by scaling outwards and
+	 * disappearing.
+	 * 
+	 * @method Y.Effects.Puff
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Puff = function (config) {
 		
-		config.effects = [
-			new Effects.Scale({ queue: false, scaleTo: 200, scaleFromCenter: true, scaleContent: true, restoreAfterFinish: true }),
-			new Effects.Opacity({ queue: false, to: 0.0 })
-		];
-		
-		config = Y.merge({
-			duration: 1.0
-		}, config);
-		
-		Effects.Puff.superclass.constructor.apply(this, arguments);
-	};
-	
-	Y.extend(Effects.Puff, Effects.Parallel, {
-		
-		_oldStyle: {},
-		
-		_defaultBeforeStartFn: function () {
-			var node = this.get("node");
-			
-			this._oldStyles = {
+		var node = Y.one(config.node),
+			// store old styles so we can reset them once we're done.
+			oldStyles = {
 			    opacity: node.getStyle("opacity"),
 			    position: node.getStyle("position"),
 			    top: node.getStyle("top"),
@@ -608,51 +1198,40 @@ YUI().add("gallery-effects", function (Y) {
 			    width: node.getStyle("width"),
 			    height: node.getStyle("height")
 			};
-			
-		    if (node.getStyle("position") !== "absolute") {
-				var xy = node.getXY();
-
-				node.setStyles({
-					position: "absolute",
-					top: xy[1] + "px",
-					left: xy[0] + "px",
-					width: node.get("clientWidth") + "px",
-					height: node.get("clientHeight") + "px"
-				});
-			}
-		},
 		
-		_defaultEndFn: function () {
-			this.get("node").hide().setStyles(this._oldStyles);
-		}
-	});
+		return new Effects.Parallel(Y.merge({
+			effects: [
+				new Effects.Scale({ node: node, managed: true, scaleTo: 200, scaleFromCenter: true, scaleContent: true, restoreAfterFinish: true }),
+				new Effects.Opacity({ node: node, managed: true, to: 0.0 })
+			],
+			duration: 1.0,
+			beforeSetup: function () {
+			    this.get("node").positionAbsolutely();
+			},
+				
+			afterFinish: function () {
+				this.get("node").hide().setStyles(oldStyles);
+			}
+		}, config));
+	};
 	
 	/***
 	 * 
 	 * @class Y.Effects.Appear
 	 * @param config {Object} has of configuration name/value pairs
-	 */  	
+	 */
 	Effects.Appear = function (config) {
 		var node = Y.one(config.node),
-			startOpacity = !node.displayed() ? 0.0 : node.getStyle("opacity") || 0.0;
-		
-		config.effects = [
-			new Y.Effects.Opacity({ queue: false, from: startOpacity, to: 1.0 })
-		];
-		
-		Effects.Appear.superclass.constructor.apply(this, arguments);
-		
-		this._startOpacity = startOpacity;
+			fromOpacity = !node.displayed() ? 0.0 : node.getStyle("opacity") || 0.0;
+
+		return new Effects.Opacity(Y.merge({
+			from: fromOpacity,
+			to: 1.0,
+			beforeSetup: function () {
+				this.get("node").setStyle("opacity", fromOpacity).show();
+			}
+		}, config));
 	};
-	
-	Y.extend(Effects.Appear, Effects.Parallel, {
-		
-		_startOpacity: 0.0,
-		
-		_defaultBeforeStartFn: function () {
-			this.get("node").setStyle("opacity", this._startOpacity).show();			
-		}
-	});
 	
 	/***
 	 * 
@@ -660,45 +1239,40 @@ YUI().add("gallery-effects", function (Y) {
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.Fade = function (config) {
-		var oldOpacity = Y.one(config.node).getStyle("opacity");
+		var node = Y.one(config.node),
+			previousOpacity = node.getStyle("opacity"),
+			toOpacity = config.to || 0.0;
 
-		config.effects = [
-			new Y.Effects.Opacity({ queue: false, from: oldOpacity || 1.0, to: 0.0 })
-		];
-		
-		Effects.Fade.superclass.constructor.apply(this, arguments);
-		
-		this._oldOpacity = oldOpacity;
+		return new Effects.Opacity(Y.merge({
+			from: previousOpacity || 1.0,
+			to: toOpacity,
+			afterFinish: function () {
+				if (toOpacity !== 0) return;
+				this.get("node").hide().setStyle("opacity", previousOpacity);
+			}
+		}, config));
 	};
-	
-	Y.extend(Effects.Fade, Effects.Parallel, {
-		
-		_oldOpacity: 1.0,
-		
-		_defaultEndFn: function () {
-			this.get("node").hide().setStyle("opacity", this._oldOpacity);			
-		}
-	});
-	
+
 	/***
 	 * 
 	 * @class Y.Effects.BlindUp
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.BlindUp = function (config) {
-		config.effects = [
-			new Y.Effects.Scale({ queue:false, scaleTo: 0, scaleX: false, restoreAfterFinish: true })
-		];
+		var node = Y.one(config.node);
 		
-		Effects.BlindUp.superclass.constructor.apply(this, arguments);
+		node._makeClipping();
+		
+		return new Effects.Scale(Y.merge({
+			scaleTo: 0,
+			scaleContent: false,
+			scaleX: false,
+			restoreAfterFinish: true,
+			afterFinish: function() {
+				this.get("node").hide()._undoClipping();
+			}
+		}, config));
 	};
-	
-	Y.extend(Effects.BlindUp, Effects.Parallel, {
-		
-		_defaultEndFn: function () {
-			_undoClipping(this.get("node").hide());
-		}
-	});
 	
 	/***
 	 * 
@@ -706,52 +1280,41 @@ YUI().add("gallery-effects", function (Y) {
 	 * @param config {Object} has of configuration name/value pairs
 	 */
 	Effects.BlindDown = function (config) {
-		var hw = getHeightAndWidthRegardlessOfDisplay(Y.one(config.node));
-		
-		config.effects = [
-			new Y.Effects.Scale(Y.merge({
-				queue:false,
-				scaleTo: 100,
-				scaleContent: false,
-				scaleX: false,
-				scaleFrom: 0,
-				scaleMode: { originalHeight: hw[1], originalWidth: hw[0] },
-				restoreAfterFinish: true
-			}))
-		];
-		
-		Effects.BlindDown.superclass.constructor.apply(this, arguments);
+		var node = Y.one(config.node),
+			hw = node.getDimensions();
+
+		return new Effects.Scale(Y.merge({
+			scaleTo: 100,
+			scaleContent: false,
+			scaleX: false,
+			scaleFrom: 0,
+			scaleMode: {originalHeight: hw[1], originalWidth: hw[0]},
+			restoreAfterFinish: true,
+			afterSetup: function() {
+				var node = this.get("node");
+
+				node._makeClipping().setStyle("height", "0px").show();
+			},
+			afterFinish: function() {
+				this.get("node")._undoClipping();
+			}
+		}, config));
 	};
 	
-	Y.extend(Effects.BlindDown, Effects.Parallel, {
-		
-		_defaultBeforeStartFn: function () {
-			_makeClipping(this.get("node"));
-			this.get("node").setStyle("height", "0px").show();
-		},
-		
-		_defaultEndFn: function () {
-			_undoClipping(this.get("node"));
-		}
-	});
-	
 	Y.Effects = Effects;
-	
-	return;
 	
 	/*********************************
 	 * ADD METHODS TO THE NODE CLASS
 	 *********************************/
 	
 	var ExtObj = {},
-		effects = "move scale highlight appear fade puff blindUp blindDown".split(" ");
+		effects = "opacity move scale morph highlight appear fade puff blindUp blindDown".split(" ");
 	
 	Y.Array.each(effects, function (effect) {
 		ExtObj[effect] = function (node, config) {
 			config = Y.merge({ node: Y.get(node) }, config || {});
 			
-			var anim = new Y.Effects[effect.charAt(0).toUpperCase() + effect.substring(1)](config);
-			anim.run();
+			new Y.Effects[effect.charAt(0).toUpperCase() + effect.substring(1)](config);
 		};
 	});
 	
