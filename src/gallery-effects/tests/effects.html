@@ -198,49 +198,111 @@
 	
 	
 	
-	<!--<h2>Y.Node.appear()</h2>
+	<h2>Y.Node.appear()</h2>
 	<div class="example">
 		<div class="box" id="appear" style="display:none;"></div>
 	</div>
+	<div class="controls">
+		<button id="appear_class">Class</button>
+		<button id="appear_method">Method</button>
+	</div>
 	<script type="text/javascript">
-		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			new Y.Effects.Appear({ node: "#appear", duration: 2 });
-			//Y.one("#appear").appear({ duration: 3 });
+		YUI().use("gallery-effects", function(Y) {
+			var KEY = "appear",
+				OPTIONS = {},
+			
+				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
+				
+			Y.get("#" + KEY + "_class").on("click", function () {
+				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
+			});
+			
+			Y.get("#" + KEY + "_method").on("click", function () {
+				Y.get("#" + KEY)[KEY](OPTIONS);
+			});
 		});
 	</script>
+
+
 	
 	<h2>Y.Node.fade()</h2>
 	<div class="example">
 		<div class="box" id="fade"></div>
 	</div>
+	<div class="controls">
+		<button id="fade_class">Class</button>
+		<button id="fade_method">Method</button>
+	</div>
 	<script type="text/javascript">
-		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			new Y.Effects.Fade({ node: "#fade" });
-			//Y.one("#fade").fade({ duration: 3 });
+		YUI().use("gallery-effects", function(Y) {
+			var KEY = "fade",
+				OPTIONS = {},
+			
+				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
+				
+			Y.get("#" + KEY + "_class").on("click", function () {
+				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
+			});
+			
+			Y.get("#" + KEY + "_method").on("click", function () {
+				Y.get("#" + KEY)[KEY](OPTIONS);
+			});
 		});
 	</script>
+	
+
 	
 	<h2>Y.Node.blindUp()</h2>
 	<div class="example">
 		<div class="box" id="blindup"></div>
 	</div>
+	<div class="controls">
+		<button id="blindup_class">Class</button>
+		<button id="blindup_method">Method</button>
+	</div>
 	<script type="text/javascript">
-		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			new Y.Effects.BlindUp({ node: "#blindup", duration: 4 });
-			//Y.one("#blindup").blindUp({ duration: 4 });
+		YUI().use("gallery-effects", function(Y) {
+			var KEY = "blindup",
+				OPTIONS = {},
+			
+				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
+				
+			Y.get("#" + KEY + "_class").on("click", function () {
+				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
+			});
+			
+			Y.get("#" + KEY + "_method").on("click", function () {
+				Y.get("#" + KEY)[KEY](OPTIONS);
+			});
 		});
 	</script>
+
+
 
 	<h2>Y.Node.blindDown()</h2>
 	<div class="example">
 		<div class="box" id="blinddown" style="display:none;"></div>
 	</div>
+	<div class="controls">
+		<button id="blinddown_class">Class</button>
+		<button id="blinddown_method">Method</button>
+	</div>
 	<script type="text/javascript">
-		YUI({combine: false, filter:"raw"}).use("gallery-effects", function(Y) {
-			new Y.Effects.BlindDown({ node: "#blinddown" });
-			//Y.one("#blinddown").blindDown();
+		YUI().use("gallery-effects", function(Y) {
+			var KEY = "blinddown",
+				OPTIONS = {},
+			
+				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
+				
+			Y.get("#" + KEY + "_class").on("click", function () {
+				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
+			});
+			
+			Y.get("#" + KEY + "_method").on("click", function () {
+				Y.get("#" + KEY)[KEY](OPTIONS);
+			});
 		});
-	</script>-->
+	</script>
 
 </body>
 </html>
