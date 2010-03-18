@@ -151,7 +151,7 @@ YUI().add("gallery-effects", function (Y) {
 				top: offsets[1] + "px",
 				left: offsets[0] + "px",
 				width: node.clientWidth + "px",
-				height: node.clientHeight + "px",
+				height: node.clientHeight + "px"
 			});
 		},
 		
@@ -164,14 +164,17 @@ YUI().add("gallery-effects", function (Y) {
 	     * @return Array
 	     */
 		getDimensions: function (node) {
+			var region;
+			
 			if (DOM.displayed(node)) {
-				return [DOM.get(node, "clientWidth"), DOM.get(node, "clientHeight")];
+				region = DOM.region(node);
+				return [region.width, region.height];
 			}
 			
 			var vis = DOM.getStyle(node, "visibility"),
 				pos = DOM.getStyle(node, "position"),
 				dis = DOM.getStyle(node, "display"),
-				region, dim;
+				dim;
 			
 			DOM.setStyles(node, {
 				visibility: "hidden",
@@ -305,7 +308,7 @@ YUI().add("gallery-effects", function (Y) {
 	]);
 	
 	/**
-    * @for Effects.Base
+    * @for Effects.BaseEffect
     * @event beforeStart
     * @description fires before an effect is added to the queue to be processed.
     * @param {Event} ev The beforeStart event.
@@ -314,7 +317,7 @@ YUI().add("gallery-effects", function (Y) {
 	var BEFORE_START = "beforeStart",
 	
 	/**
-    * @for Effects.Base
+    * @for Effects.BaseEffect
     * @event beforeSetup
     * @description fires before we call the setup method.
     * @param {Event} ev The beforeSetup event.
@@ -323,7 +326,7 @@ YUI().add("gallery-effects", function (Y) {
 	BEFORE_SETUP = "beforeSetup",
 	
 	/**
-    * @for Effects.Base
+    * @for Effects.BaseEffect
     * @event afterSetup
     * @description fires after we call the setup method.
     * @param {Event} ev The afterSetup event.
@@ -332,7 +335,7 @@ YUI().add("gallery-effects", function (Y) {
 	AFTER_SETUP = "afterSetup",
 	
 	/**
-    * @for Effects.Base
+    * @for Effects.BaseEffect
     * @event beforeFinish
     * @description fires before we call the finish method.
     * @param {Event} ev The beforeFinish event.
@@ -341,7 +344,7 @@ YUI().add("gallery-effects", function (Y) {
 	BEFORE_FINISH = "beforeFinish",
 	
 	/**
-    * @for Effects.Base
+    * @for Effects.BaseEffect
     * @event afterFinish
     * @description fires after we call the finish method.
     * @param {Event} ev The afterFinish event.
@@ -358,17 +361,17 @@ YUI().add("gallery-effects", function (Y) {
 	 * in Y.Effects.EffectQueues.  This wrapper class also exposes methods to modify the
 	 * node before and after the animation.
 	 * 
-	 * @class Y.Effects.Base
+	 * @class Y.Effects.BaseEffect
 	 * @extends Y.Base
 	 * @param config {Object} has of configuration name/value pairs
 	 */
-	Effects.Base = function (config) {
-		Effects.Base.superclass.constructor.apply(this, arguments);
+	Effects.BaseEffect = function (config) {
+		Effects.BaseEffect.superclass.constructor.apply(this, arguments);
 	};
 	
-	Effects.Base.NAME = "base";
+	Effects.BaseEffect.NAME = "baseEffect";
 	
-	Effects.Base.ATTRS = {
+	Effects.BaseEffect.ATTRS = {
 		
 		/**
          * The scope of the effect.  This can be used to queue effects in different lists.
@@ -457,7 +460,7 @@ YUI().add("gallery-effects", function (Y) {
 	
 	
 	
-	Y.extend(Effects.Base, Y.Base, {
+	Y.extend(Effects.BaseEffect, Y.Base, {
 		
 		/**
          * Set the configuration and node properties appropriately.  Then publish
@@ -577,7 +580,7 @@ YUI().add("gallery-effects", function (Y) {
 	});
 	
 	/***
-	 * This is a special subclass of Effects.Base because it executes other Effects.Base
+	 * This is a special subclass of Effects.BaseEffect because it executes other Effects.BaseEffect
 	 * instances rather than an Anim instance.  This is nice because it allows you to queue
 	 * multiple effects to be executed at the same time.
 	 * 
@@ -605,7 +608,7 @@ YUI().add("gallery-effects", function (Y) {
 		}
 	};
 	
-	Y.extend(Effects.Parallel, Effects.Base, {
+	Y.extend(Effects.Parallel, Effects.BaseEffect, {
 		
 		/**
          * Add this effect to the queue.
@@ -669,7 +672,7 @@ YUI().add("gallery-effects", function (Y) {
 	
 	Effects.Opacity.NAME = "opacity";
 	
-	Y.extend(Effects.Opacity, Effects.Base, {
+	Y.extend(Effects.Opacity, Effects.BaseEffect, {
 		
 		/**
          * The starting opacity for this effect.
@@ -726,7 +729,7 @@ YUI().add("gallery-effects", function (Y) {
 	
 	Effects.Move.NAME = "move";
 	
-	Y.extend(Effects.Move, Effects.Base, {
+	Y.extend(Effects.Move, Effects.BaseEffect, {
 		
 		/**
 		 * 
@@ -767,7 +770,7 @@ YUI().add("gallery-effects", function (Y) {
 	
 	Effects.Morph.NAME = "morph";
 	
-	Y.extend(Effects.Morph, Effects.Base, {
+	Y.extend(Effects.Morph, Effects.BaseEffect, {
 
 		/**
 		 * 
@@ -891,7 +894,10 @@ YUI().add("gallery-effects", function (Y) {
          */
 		scaleTo: {
 			value: 200.0,
-			validator: L.isNumber
+			validator: L.isNumber,
+			setter: function (v) {
+				return v;
+			}
 		},
 		
 		/**
@@ -908,7 +914,7 @@ YUI().add("gallery-effects", function (Y) {
 		}
 	};
 	
-	Y.extend(Effects.Scale, Effects.Base, {
+	Y.extend(Effects.Scale, Effects.BaseEffect, {
 
 		/**
          * Style we will revert to if we are restoring.
@@ -925,7 +931,6 @@ YUI().add("gallery-effects", function (Y) {
          * @param config {Object} has of configuration name/value pairs
          */
 		initializer: function (config) {
-			console.log(config, this.get("scaleFromCenter"),this.get("scaleTo"));
 			this.addToQueue();
 		},
 
@@ -936,7 +941,6 @@ YUI().add("gallery-effects", function (Y) {
          * @method setup
          */
 		setup: function () {
-			
 			var config = this.get("config"),
 		    	node = this.get("node"),
 				
@@ -1108,7 +1112,7 @@ YUI().add("gallery-effects", function (Y) {
 		}
 	};
 	
-	Y.extend(Effects.Highlight, Effects.Base, {
+	Y.extend(Effects.Highlight, Effects.BaseEffect, {
 
 		/**
          * Background image of the node on start.  This is reset after the animation
@@ -1320,4 +1324,4 @@ YUI().add("gallery-effects", function (Y) {
 	
 	Y.Node.importMethod(ExtObj, effects);
 
-}, "3.0.0" , { requires : ["node", "anim", "async-queue"] });
+}, "3.0.0" , { requires : ["node", "anim", "base", "async-queue"] });

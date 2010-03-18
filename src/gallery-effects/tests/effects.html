@@ -7,6 +7,13 @@
 	
 	<script src="../js/effects.js" type="text/javascript"></script>
 	
+	<script type="text/javascript">
+		YUI_CONFIG = {
+			filter: "raw",
+			combine: false
+		};
+	</script>
+	
 	<style type="text/css">
 		body {
 			margin:1em;
@@ -17,7 +24,7 @@
 		}
 		.example {
 			position:relative;
-			padding:10px;
+			padding:50px;
 			border:solid 2px #bbf;
 			background-color:#ddf;
 			margin-bottom:0.5em;
@@ -38,29 +45,12 @@
 	
 	<h2>Y.Node.Opacity()</h2>
 	<div class="example">
-		<div class="box" id="opacity" style="opacity:0"></div>
+		<div class="box" id="opacity" style="opacity:0;"></div>
 	</div>
 	<div class="controls">
 		<button id="opacity_class">Class</button>
 		<button id="opacity_method">Method</button>
 	</div>
-	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "opacity",
-				OPTIONS = { from: 0, to: 1 },
-			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
-				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
-			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
-			});
-		});
-	</script>
-	
 	
 	
 	<h2>Y.Node.Move()</h2>
@@ -71,23 +61,6 @@
 		<button id="move_class">Class</button>
 		<button id="move_method">Method</button>
 	</div>
-	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "move",
-				OPTIONS = { x: 200, y: 200 },
-			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
-				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
-			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
-			});
-		});
-	</script>
-	
 	
 	
 	<h2>Y.Node.Morph()</h2>
@@ -98,23 +71,6 @@
 		<button id="morph_class">Class</button>
 		<button id="morph_method">Method</button>
 	</div>
-	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "morph",
-				OPTIONS = { to: { backgroundColor: "blue", color: "white" } },
-			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
-				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
-			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
-			});
-		});
-	</script>
-	
 	
 	
 	<h2>Y.Node.Scale()</h2>
@@ -125,24 +81,6 @@
 		<button id="scale_class">Class</button>
 		<button id="scale_method">Method</button>
 	</div>
-	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "scale",
-				OPTIONS = { scaleTo: 250, scaleFromCenter: true },
-			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
-				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
-			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
-			});
-		});
-	</script>
-	
-	
 	
 	<h2>Y.Node.highlight()</h2>
 	<div class="example">
@@ -152,23 +90,6 @@
 		<button id="highlight_class">Class</button>
 		<button id="highlight_method">Method</button>
 	</div>
-	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "highlight",
-				OPTIONS = { duration: 3 },
-			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
-				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
-			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
-			});
-		});
-	</script>
-	
 	
 	
 	<h2>Y.Node.puff()</h2>
@@ -179,23 +100,6 @@
 		<button id="puff_class">Class</button>
 		<button id="puff_method">Method</button>
 	</div>
-	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "puff",
-				OPTIONS = {},
-			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
-				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
-			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
-			});
-		});
-	</script>
-	
 	
 	
 	<h2>Y.Node.appear()</h2>
@@ -206,24 +110,7 @@
 		<button id="appear_class">Class</button>
 		<button id="appear_method">Method</button>
 	</div>
-	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "appear",
-				OPTIONS = {},
-			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
-				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
-			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
-			});
-		});
-	</script>
-
-
+	
 	
 	<h2>Y.Node.fade()</h2>
 	<div class="example">
@@ -233,73 +120,71 @@
 		<button id="fade_class">Class</button>
 		<button id="fade_method">Method</button>
 	</div>
-	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "fade",
-				OPTIONS = {},
-			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
-				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
-			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
-			});
-		});
-	</script>
 	
-
 	
 	<h2>Y.Node.blindUp()</h2>
 	<div class="example">
-		<div class="box" id="blindup"></div>
+		<div class="box" id="blindUp"></div>
 	</div>
 	<div class="controls">
-		<button id="blindup_class">Class</button>
-		<button id="blindup_method">Method</button>
+		<button id="blindUp_class">Class</button>
+		<button id="blindUp_method">Method</button>
 	</div>
-	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "blindup",
-				OPTIONS = {},
-			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
-				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
-			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
-			});
-		});
-	</script>
-
-
-
+	
+	
 	<h2>Y.Node.blindDown()</h2>
 	<div class="example">
-		<div class="box" id="blinddown" style="display:none;"></div>
+		<div class="box" id="blindDown" style="display:none;"></div>
 	</div>
 	<div class="controls">
-		<button id="blinddown_class">Class</button>
-		<button id="blinddown_method">Method</button>
+		<button id="blindDown_class">Class</button>
+		<button id="blindDown_method">Method</button>
 	</div>
+	
+	<h2>Chaining</h2>
+	<div class="example">
+		<div class="box" id="chaining"></div>
+	</div>
+	<div class="controls">
+		<button id="chaining_ctrl">Go</button>
+	</div>
+	
 	<script type="text/javascript">
-		YUI().use("gallery-effects", function(Y) {
-			var KEY = "blinddown",
-				OPTIONS = {},
+		YUI(YUI_CONFIG).use("gallery-effects", function(Y) {
+			B = Y;
 			
-				capitalized = KEY.charAt(0).toUpperCase() + KEY.substring(1);
+			var cfg = {
+				opacity: { from: 0, to: 1 },
+				move: { x: 200, y: 200 },
+				morph: { to: { backgroundColor: "blue", color: "white" } },
+				scale: { scaleTo: 250, scaleFromCenter: true },
+				highlight: { duration: 3 },
+				puff: {},
+				appear: {},
+				fade: {},
+				blindUp: {},
+				blindDown: {}
+			},
+			
+			bindEffect = function (effect, options) {
+				var capitalized = effect.charAt(0).toUpperCase() + effect.substring(1);
+					
+				Y.get("#" + effect + "_class").on("click", function () {
+					new Y.Effects[capitalized](Y.merge({ node: "#" + effect}, options));
+				});
 				
-			Y.get("#" + KEY + "_class").on("click", function () {
-				new Y.Effects[capitalized](Y.merge({ node: "#" + KEY}, OPTIONS));
-			});
+				Y.get("#" + effect + "_method").on("click", function () {
+					Y.get("#" + effect)[effect](options);
+				});
+			};
 			
-			Y.get("#" + KEY + "_method").on("click", function () {
-				Y.get("#" + KEY)[KEY](OPTIONS);
+			// Bind all the UI elements.
+			for (effect in cfg) {
+				bindEffect(effect, cfg[effect]);
+			}
+			
+			Y.get("#chaining_ctrl").on("click", function () {
+				Y.get("#chaining").blindUp().blindDown();
 			});
 		});
 	</script>
