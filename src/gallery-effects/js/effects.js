@@ -1,5 +1,3 @@
-YUI().add("gallery-effects", function (Y) {
-
 	/**
 	 * The Effects module provides an easy to use API to perform
 	 * animations on DOM elements as well as an extensible way to create
@@ -11,7 +9,7 @@ YUI().add("gallery-effects", function (Y) {
 
 	var L = Y.Lang,
 		DOM = Y.DOM,
-		GLOBAL = "global";
+		GLOBAL = "global",
 	
 	Effects = {};
 	
@@ -41,7 +39,9 @@ YUI().add("gallery-effects", function (Y) {
 		 * @return {Y.AsyncQueue} queue instances
 		 */
 		get: function (key) {
-			if (!L.isString(key)) return key;
+			if (!L.isString(key)) {
+				return key;
+			}
 			
 			if (!this.instances[key]) {
 				this.instances[key] = new Y.AsyncQueue();
@@ -58,7 +58,7 @@ YUI().add("gallery-effects", function (Y) {
 	 * @type {Y.AsyncQueue}
 	 * @static
 	 */
-	Effects.GlobalQueue = Effects.EffectQueues.get("global");
+	Effects.GlobalQueue = Effects.EffectQueues.get(GLOBAL);
 
 
 
@@ -126,9 +126,13 @@ YUI().add("gallery-effects", function (Y) {
 				node = node.offsetParent;
 
 				if (node) {
-					if (node.tagName === "BODY") break;
+					if (node.tagName === "BODY") {
+						break;
+					}
 					var p = DOM.getStyle(node, "position");
-					if (p !== "static") break;
+					if (p !== "static") {
+						break;
+					}
 				}
 			} while (node);
 			
@@ -143,8 +147,10 @@ YUI().add("gallery-effects", function (Y) {
 	     */
 		positionAbsolutely: function (node) {
 
-		    if (DOM.getStyle(node, "position") === "absolute") return;
-		
+		    if (DOM.getStyle(node, "position") === "absolute") {
+				return;
+			}
+			
 		    var offsets = DOM.getPositionedOffset(node);
 
 		    DOM.setStyles(node, {
@@ -215,8 +221,6 @@ YUI().add("gallery-effects", function (Y) {
 	     * @method undoPositioned
 	     */
 		undoPositioned: function (node) {
-			var pos = DOM.getStyle(node, position);
-			
 			DOM.setStyles(node, {
 				position: "",
 				top: "",
@@ -234,7 +238,9 @@ YUI().add("gallery-effects", function (Y) {
 	     * @protected
 	     */
 		_makeClipping: function (node) {
-			if (node._overflow) return node;
+			if (node._overflow) {
+				return node;
+			}
 			
 			node._oveflow = DOM.getStyle(node, "overflow") || "auto";
 			
@@ -251,7 +257,9 @@ YUI().add("gallery-effects", function (Y) {
 	     * @protected
 	     */
 		_undoClipping: function (node) {
-			if (!node._overflow) return;
+			if (!node._overflow) {
+				return;
+			}
 			
 			DOM.setStyle(node, "overflow", node._overflow === "auto" ? "" : node._overflow);
 			node._overflow = undefined;
@@ -441,7 +449,7 @@ YUI().add("gallery-effects", function (Y) {
          * @type String
          */
 		scope: {
-			value: "global",
+			value: GLOBAL,
 			validator: L.isString
 		},
 		
@@ -679,8 +687,7 @@ YUI().add("gallery-effects", function (Y) {
 		run: function () {
 
 			var effects = this.get("effects"),
-				config = this.get("config"),
-				node = this.get("node");
+				config = this.get("config");
 
 			// Do the setup stuff first.
 			this.fire("beforeSetup");
@@ -762,7 +769,7 @@ YUI().add("gallery-effects", function (Y) {
 
 			config.to = {
 				opacity: config.to !== undefined ? config.to : 1.0
-			}
+			};
 
 			this.set("anim", new Y.Anim(config));
 		}
@@ -806,7 +813,7 @@ YUI().add("gallery-effects", function (Y) {
 			node.makePositioned();
 			
 			if (config.mode === "absolute") {
-				config.to = { xy: [config.x, config.y] }
+				config.to = { xy: [config.x, config.y] };
 			} else {
 				config.to = {
 					left: ((config.x || 0) + parseFloat(domNode.style.left || "0")) + "px",
@@ -1012,7 +1019,6 @@ YUI().add("gallery-effects", function (Y) {
 				scaleMode = this.get("scaleMode"),
 				scaleFrom = this.get("scaleFrom"),
 				scaleTo = this.get("scaleTo"),
-				restoreAfterFinish = this.get("restoreAfterFinish"),
 				
 				elementPositioning = node.getStyle("position"),
 				originalXY = node.getPositionedOffset(),
@@ -1111,7 +1117,9 @@ YUI().add("gallery-effects", function (Y) {
          * @protected
          */
 		_finish: function () {
-			if (this.get("restoreAfterFinish")) this.get("node").setStyles(this._originalStyle);
+			if (this.get("restoreAfterFinish")) {
+				this.get("node").setStyles(this._originalStyle);
+			}
 		}
 	});
 	
@@ -1207,10 +1215,12 @@ YUI().add("gallery-effects", function (Y) {
 				}, this.get("config")),
 				node = this.get("node");
 			
-			config.from = { backgroundColor: this.get("startColor") },
+			config.from = { backgroundColor: this.get("startColor") };
 			config.to = { backgroundColor: this.get("endColor") };
 
-			if (!this.get("restoreColor")) this.set("restoreColor", node.getStyle("backgroundColor"));
+			if (!this.get("restoreColor")) {
+				this.set("restoreColor", node.getStyle("backgroundColor"));
+			}
 			
 			this._previousBackgroundImage = node.getStyle("backgroundImage");
 
@@ -1312,7 +1322,10 @@ YUI().add("gallery-effects", function (Y) {
 			from: previousOpacity || 1.0,
 			to: toOpacity,
 			afterFinish: function () {
-				if (toOpacity !== 0) return;
+				if (toOpacity !== 0) {
+					return;
+				}
+				
 				this.get("node").hide().setStyle("opacity", previousOpacity);
 			}
 		}, config));
@@ -1379,10 +1392,8 @@ YUI().add("gallery-effects", function (Y) {
 		ExtObj[effect] = function (node, config) {
 			config = Y.merge({ node: Y.get(node) }, config || {});
 			
-			new Y.Effects[effect.charAt(0).toUpperCase() + effect.substring(1)](config);
+			var created = new Y.Effects[effect.charAt(0).toUpperCase() + effect.substring(1)](config);
 		};
 	});
 	
 	Y.Node.importMethod(ExtObj, effects);
-
-}, "3.0.0" , { requires : ["node", "anim", "base", "async-queue"] });
