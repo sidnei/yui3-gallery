@@ -141,7 +141,8 @@
 		<button id="blindDown_method">Method</button>
 	</div>
 	
-	<h2>Chaining</h2>
+	
+	<h2>Chaining (wait)</h2>
 	<div class="example">
 		<div class="box" id="chaining"></div>
 	</div>
@@ -149,13 +150,23 @@
 		<button id="chaining_ctrl">Go</button>
 	</div>
 	
+	
+	<h2>Chaining (no wait)</h2>
+	<div class="example">
+		<div class="box" id="chain2"></div>
+	</div>
+	<div class="controls">
+		<button id="chain2_ctrl">Go</button>
+	</div>
+	
+	
 	<script type="text/javascript">
 		YUI(YUI_CONFIG).use("gallery-effects", function(Y) {
 			B = Y;
 			
 			var cfg = {
 				opacity: { from: 0, to: 1 },
-				move: { x: 200, y: 200 },
+				move: { x: 50, y: 20 },
 				morph: { to: { backgroundColor: "blue", color: "white" } },
 				scale: { scaleTo: 250, scaleFromCenter: true },
 				highlight: { duration: 3 },
@@ -185,6 +196,10 @@
 			
 			Y.get("#chaining_ctrl").on("click", function () {
 				Y.get("#chaining").blindUp().blindDown();
+			});
+			
+			Y.get("#chain2_ctrl").on("click", function () {
+				Y.get("#chain2").move({ x: 50, wait: false }).opacity({ from: 1.0, to: 0.5 });
 			});
 		});
 	</script>

@@ -115,6 +115,7 @@ YUI().add("gallery-effects", function (Y) {
 	     * offset relative ancestor, relative positioned nodes.
 	     *
 	     * @method getPositionedOffset
+	     * @return Array
 	     */
 		getPositionedOffset: function(node) {
 			var valueT = 0, valueL = 0;
@@ -195,6 +196,37 @@ YUI().add("gallery-effects", function (Y) {
 		},
 		
 		/**
+	     * Force a node to be positioned, which essentially means setting the position to
+	     * be non-static.
+		 *
+	     * @method makePositioned
+	     */
+		makePositioned: function (node) {
+			var pos = DOM.getStyle(node, "position");
+			
+			if (pos === "static" || !pos) {
+				DOM.setStyle(node, "position", "relative");
+			}
+		},
+		
+		/**
+	     * If a node has been previously forced to be positioned, this method will undo that.
+		 *
+	     * @method undoPositioned
+	     */
+		undoPositioned: function (node) {
+			var pos = DOM.getStyle(node, position);
+			
+			DOM.setStyles(node, {
+				position: "",
+				top: "",
+				left: "",
+				bottom: "",
+				right: ""
+			});
+		},
+		
+		/**
 	     * Make a node clippable by settings its overflow style to hidden and storing
 	     * it's previous style on the element itself.
 		 *
@@ -222,7 +254,7 @@ YUI().add("gallery-effects", function (Y) {
 			if (!node._overflow) return;
 			
 			DOM.setStyle(node, "overflow", node._overflow === "auto" ? "" : node._overflow);
-			node._overflow = null;
+			node._overflow = undefined;
 		}
 	});
 	
@@ -265,6 +297,7 @@ YUI().add("gallery-effects", function (Y) {
 	     * offset relative ancestor, relative positioned nodes.
 	     *
 	     * @method getPositionedOffset
+	     * @return Array
 	     */
 		"getPositionedOffset",
 		
@@ -273,6 +306,7 @@ YUI().add("gallery-effects", function (Y) {
 	     * respect to the entire page.
 	     *
 	     * @method positionAbsolutely
+	     * @chainable
 	     */
 		"positionAbsolutely",
 		
@@ -285,6 +319,23 @@ YUI().add("gallery-effects", function (Y) {
 	     * @return Array
 	     */
 		"getDimensions",
+		
+		/**
+	     * Force a node to be positioned, which essentially means setting the position to
+	     * be non-static.
+		 *
+	     * @method makePositioned
+	     * @chainable
+	     */
+		"makePositioned",
+		
+		/**
+	     * If a node has been previously forced to be positioned, then this method will undo that.
+		 *
+	     * @method undoPositioned
+	     * @chainable
+	     */
+		"undoPositioned",
 		
 		/**
 	     * Make a node clippable by settings its overflow style to hidden and storing
@@ -306,6 +357,16 @@ YUI().add("gallery-effects", function (Y) {
 	     */
 		"_undoClipping"
 	]);
+	
+	
+	
+	/*************************************************************
+	 * 
+	 * 					C O R E   E F F E C T S
+	 * 
+	 *************************************************************/
+	
+	
 	
 	/**
     * @for Effects.BaseEffect
@@ -450,16 +511,6 @@ YUI().add("gallery-effects", function (Y) {
 		}
 	};
 	
-	
-	
-	/*************************************************************
-	 * 
-	 * 					C O R E   E F F E C T S
-	 * 
-	 *************************************************************/
-	
-	
-	
 	Y.extend(Effects.BaseEffect, Y.Base, {
 		
 		/**
@@ -552,7 +603,7 @@ YUI().add("gallery-effects", function (Y) {
 			
 			// If it's a managed effect and the queue we were in isn't currently running,
 			// then execute the next effect.
-			if (this.get("managed") && !this._getQueue().isRunning()) {
+			if (!this.get("managed") && !this._getQueue().isRunning()) {
 				this._getQueue().run();
 			}
 			
@@ -747,12 +798,22 @@ YUI().add("gallery-effects", function (Y) {
          * @method setup
          */
 		setup: function () {
-			var config = this.get("config");
+			var config = this.get("config"),
+				node = this.get("node"),
+				// Don't like this, but node.getStyle("top") will return "auto" which is annoying.
+				domNode = Y.Node.getDOMNode(node);
+				
+			node.makePositioned();
 			
-			config.to = {
-				xy: [config.x, config.y]
-			};
-			
+			if (config.mode === "absolute") {
+				config.to = { xy: [config.x, config.y] }
+			} else {
+				config.to = {
+					left: ((config.x || 0) + parseFloat(domNode.style.left || "0")) + "px",
+					top: ((config.y || 0) + parseFloat(domNode.style.top || "0")) + "px"
+				};
+			}
+
 			this.set("anim", new Y.Anim(config));
 		}
 	});
