@@ -1054,10 +1054,10 @@
 			var to = {}, from = {},
 				toScaleFraction = scaleTo/100.0,
 				fromScaleFraction = scaleFrom/100.0,
-				fromWidth = dims[0] * fromScaleFraction,
-				fromHeight = dims[1] * fromScaleFraction,
-				toWidth = dims[0] * toScaleFraction,
-				toHeight = dims[1] * toScaleFraction;
+				fromWidth = dims[1] * fromScaleFraction,
+				fromHeight = dims[0] * fromScaleFraction,
+				toWidth = dims[1] * toScaleFraction,
+				toHeight = dims[0] * toScaleFraction;
 			
 			if (scaleContent && fontSize) {
 				from.fontSize = fontSize * fromScaleFraction + fontSizeType;
