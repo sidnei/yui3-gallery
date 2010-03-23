@@ -193,4 +193,4 @@ YUI.add('gallery-markout', function(Y) {
 	Y.Markout = YMarkout;
 
 
-}, '@VERSION@' ,{requires:['dom-style','selector','node-base']});
+}, 'gallery-2010.03.23-17-54' ,{requires:['dom-style','selector','node-base']});
