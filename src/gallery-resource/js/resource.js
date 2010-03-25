@@ -1,5 +1,5 @@
-	/**
-	 * Resource
+	/*!
+	 * Resource - A RESTful wrapper around Y.io
 	 * 
 	 * Oddnut Software
 	 * Copyright (c) 2009 Eric Ferraiuolo - http://eric.ferraiuolo.name
@@ -180,32 +180,32 @@
 				
 		HEAD : function (config) {
 			
-			this.sendRequest(Y.merge(config, { method: HEAD }));
+			return this.sendRequest(Y.merge(config, { method: HEAD }));
 		},
 		
 		OPTIONS : function (config) {
 			
-			this.sendRequest(Y.merge(config, { method: OPTIONS }));
+			return this.sendRequest(Y.merge(config, { method: OPTIONS }));
 		},
 		
 		GET : function (config) {
 			
-			this.sendRequest(Y.merge(config, { method: GET }));
+			return this.sendRequest(Y.merge(config, { method: GET }));
 		},
 		
 		POST : function (config) {
 			
-			this.sendRequest(Y.merge(config, { method: POST }));
+			return this.sendRequest(Y.merge(config, { method: POST }));
 		},
 		
 		PUT : function (config) {
 			
-			this.sendRequest(Y.merge(config, { method: PUT }));
+			return this.sendRequest(Y.merge(config, { method: PUT }));
 		},
 		
 		DELETE : function (config) {
 			
-			this.sendRequest(Y.merge(config, { method: DELETE }));
+			return this.sendRequest(Y.merge(config, { method: DELETE }));
 		},
 		
 		// *** Private Methods *** //
