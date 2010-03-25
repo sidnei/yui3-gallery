@@ -1,3 +1,5 @@
+YUI.add('gallery-notifications', function(Y) {
+
 /*
  * Copyright (c) 2010 Ricardo Ramirez. All rights reserved.
  *
@@ -27,7 +29,6 @@ Y.Notifications = function (sourceNode) {
     if (typeof(sourceNode) === 'string') {	// if String, try to find the corresponding node
 		sourceNode = Y.DOM.byId(sourceNode);
 		if (!sourceNode) {
-			Y.log(sourceNode + ' could not be found, notifications will be an empty object');
 		}
 	}
 
@@ -252,15 +253,12 @@ Y.Notifications.prototype.switchStatus = function(tab, pop) {
  */
 Y.Notifications.prototype.addNotification = function(notification) {
 	if (typeof(notification) !== 'object') {
-		Y.log('The parameter notification is mandatory, and must be of type object');
 		return;
 	}
 	if (!notification.content) {
-		Y.log('The notification should have a \'content\' property with the text of the notification');
 		return;
 	}
 	if (!notification.dateline) {
-		Y.log('The notification should have a \'dateline\' property with the unix timestamp of the notification');
 		return;
 	}
 
@@ -293,7 +291,6 @@ Y.Notifications.prototype.addNotificationsFromCallback = function(transactionId,
 	try {
 		obj = Y.JSON.parse(response.responseText);
 	} catch (ex) {
-		Y.log('Error while parsing JSON response, notifications not valid');
 	}
 	
 	if (obj.length) {
@@ -358,3 +355,6 @@ Y.Notifications.prototype.registerSource = function(source, periodicity) {
 };
 
 
+
+
+}, 'gallery-2010.03.24-20-12' ,{requires:['dom','node','json-parse','io-base']});

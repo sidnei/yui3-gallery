@@ -1,3 +1,5 @@
+YUI.add('gallery-notifications', function(Y) {
+
 /*
  * Copyright (c) 2010 Ricardo Ramirez. All rights reserved.
  *
@@ -358,3 +360,6 @@ Y.Notifications.prototype.registerSource = function(source, periodicity) {
 };
 
 
+
+
+}, 'gallery-2010.03.24-20-12' ,{requires:['dom','node','json-parse','io-base']});

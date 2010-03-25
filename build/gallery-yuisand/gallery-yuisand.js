@@ -1,3 +1,5 @@
+YUI.add('gallery-yuisand', function(Y) {
+
  
 /**
 * YUISand is a widget for YUI3 that fancifies sorting collections of items
@@ -493,3 +495,6 @@ Y.extend( YUISand, Y.Base, {
 });
  
 Y.YUISand = YUISand;
+
+
+}, 'gallery-2010.03.24-20-12' ,{requires:['anim']});
