@@ -338,4 +338,4 @@ YUI.add('gallery-resource', function(Y) {
 	Y.Resource = Resource;
 
 
-}, '@VERSION@' ,{requires:['base-base', 'io-base', 'querystring-stringify-simple', 'substitute', 'json']});
+}, 'gallery-2010.03.30-17-26' ,{requires:['base-base', 'io-base', 'querystring-stringify-simple', 'substitute', 'json']});

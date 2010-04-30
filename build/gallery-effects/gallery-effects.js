@@ -1401,4 +1401,4 @@ YUI.add('gallery-effects', function(Y) {
 	Y.Node.importMethod(ExtObj, effects);
 
 
-}, '@VERSION@' ,{requires:['node','anim','async-queue']});
+}, 'gallery-2010.03.23-17-54' ,{requires:['node','anim','async-queue']});
