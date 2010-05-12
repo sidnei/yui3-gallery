@@ -105,9 +105,9 @@
 			config = config || {};
 			
 			this.publish(E_REQUEST, { defaultFn: this._defRequestFn });
-			this.publish(E_RESPONSE, { preventable: false });
-			this.publish(E_SUCCESS, { preventable: false });
-			this.publish(E_FAILURE, { preventable: false });
+			this.publish(E_RESPONSE);
+			this.publish(E_SUCCESS);
+			this.publish(E_FAILURE);
 			
 			Y.each(Resource.ENTITY_TRANSLATORS, Y.bind(this.registerEntityTranslator, this));	// default translators
 			Y.each(config[ENTITY_TRANSLATORS], Y.bind(this.registerEntityTranslator, this));	// instance translators
@@ -272,12 +272,13 @@
 					failure		: this._onFailure
 				},
 				'arguments'	: {
-					request	: {
+					resource	: this,
+					request		: {
 						method	: e.method,	// method
 						params	: e.params,	// original params
 						entity	: e.entity	// original entity
 					},
-					on		: on
+					on			: on
 				}
 			});
 		},
@@ -287,12 +288,15 @@
 			var methodResponse = args.request.method.toLowerCase()+'Response',
 				payLoad = { txId: txId, request: args.request, response: r };
 			
-			this.fire(E_RESPONSE, payLoad);
-			this.fire(methodResponse, Y.merge(payLoad, { preventable: false }));
+			this.getEvent(E_RESPONSE).applyConfig({ defaultFn: function(e){
+				this.publish(methodResponse, { defaultFn: function(e){
+					if (args.on && isFunction(args.on.response)) {
+						args.on.response(payLoad);
+					}
+				}}).fire(payLoad);
+			}}, true);
 			
-			if (args.on && isFunction(args.on.response)) {
-				args.on.response(payLoad);
-			}
+			this.fire(E_RESPONSE, payLoad);
 		},
 		
 		_onSuccess : function (txId, r, args) {
@@ -305,17 +309,22 @@
 			if (entity && translator && translator.deserialize) {
 				try {
 					entity = translator.deserialize(entity);
-				} catch (err) {}
+				} catch (err) {
+					Y.error(err);
+				}
 			}
 			
 			payLoad = { txId: txId, request: args.request, response: r, entity: entity };
 			
-			this.fire(E_SUCCESS, payLoad);
-			this.fire(methodSuccess, Y.merge(payLoad, { preventable: false }));
+			this.getEvent(E_SUCCESS).applyConfig({ defaultFn: function(e){
+				this.publish(methodSuccess, { defaultFn: function(e){
+					if (args.on && isFunction(args.on.success)) {
+						args.on.success(payLoad);
+					}
+				}}).fire(payLoad);
+			}}, true);
 			
-			if (args.on && isFunction(args.on.success)) {
-				args.on.success(payLoad);
-			}
+			this.fire(E_SUCCESS, payLoad);
 		},
 		
 		_onFailure : function (txId, r, args) {
@@ -323,12 +332,15 @@
 			var methodFailure = args.request.method.toLowerCase()+'Failure',
 				payLoad = { txId: txId, request: args.request, response: r };
 			
-			this.fire(E_FAILURE, payLoad);
-			this.fire(methodFailure, Y.merge(payLoad, { preventable: false }));
+			this.getEvent(E_FAILURE).applyConfig({ defaultFn: function(e){
+				this.publish(methodFailure, { defaultFn: function(e){
+					if (args.on && isFunction(args.on.failure)) {
+						args.on.failure(payLoad);
+					}
+				}}).fire(payLoad);
+			}}, true);
 			
-			if (args.on && isFunction(args.on.failure)) {
-				args.on.failure(payLoad);
-			}
+			this.fire(E_FAILURE, payLoad);
 		}
 		
 	});
