@@ -40,7 +40,7 @@
 		
 		initComponentMgr : function () {
 			
-			// Holds to goods
+			// Holds the goods
 			this._components = new Y.State();
 			
 			// Add the components defined in the static COMPONENTS object
