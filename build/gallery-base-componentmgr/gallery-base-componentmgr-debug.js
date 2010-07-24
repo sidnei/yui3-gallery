@@ -225,4 +225,4 @@ YUI.add('gallery-base-componentmgr', function(Y) {
 	Y.BaseComponentMgr = ComponentMgr;
 
 
-}, '@VERSION@' ,{requires:['collection']});
+}, 'gallery-2010.06.23-18-37' ,{requires:['collection']});
