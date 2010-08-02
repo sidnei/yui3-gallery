@@ -31,8 +31,6 @@ Y.Event.defineOutside = function (event, name) {
     
     Y.Event.define(name, {
         
-        publishConfig: { emitFacade: false },
-        
         on: function (node, sub, notifier) {
             
             sub.onHandle = Y.one('doc').delegate(event, function(e){
@@ -47,11 +45,11 @@ Y.Event.defineOutside = function (event, name) {
         
         delegate: function (node, sub, notifier, filter) {
             
-            sub.delegateHandle = Y.one('doc').delegate(event, Y.bind(function(e){
+            sub.delegateHandle = Y.one('doc').delegate(event, function(e){
                 if (this.isOutside(node, e)) {
                     notifier.fire(e);
                 }
-            }, this), filter);
+            }, filter, this);
         },
         
         detachDelegate : function (node, sub, notifier, filter) {
