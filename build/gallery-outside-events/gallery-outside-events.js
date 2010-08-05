@@ -35,9 +35,11 @@ Y.Event.defineOutside = function (event, name) {
         
         on: function (node, sub, notifier) {
             
-            sub.onHandle = Y.one('doc').delegate(event, function(e){
-                notifier.fire(e);
-            }, Y.bind(this.isOutside, this, node));
+            sub.onHandle = Y.one('doc').on(event, function(e){
+            	if (this.isOutside(node, e.target)){
+            		notifier.fire(e);
+            	}
+            }, this);
         },
         
         detach: function (node, sub, notifier) {
@@ -48,7 +50,7 @@ Y.Event.defineOutside = function (event, name) {
         delegate: function (node, sub, notifier, filter) {
             
             sub.delegateHandle = Y.one('doc').delegate(event, function(e){
-                if (this.isOutside(node, e)) {
+                if (this.isOutside(node, e.target)) {
                     notifier.fire(e);
                 }
             }, filter, this);
@@ -59,9 +61,9 @@ Y.Event.defineOutside = function (event, name) {
             sub.delegateHandle.detach();
         },
         
-        isOutside: function (node, e) {
+        isOutside: function (node, target) {
             
-            return e.target !== node && ! e.target.ancestor(function(p){ return p === node; });
+            return target !== node && ! target.ancestor(function(p){ return p === node; });
         }
         
     });

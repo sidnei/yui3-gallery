@@ -34,12 +34,10 @@ Y.Event.defineOutside = function (event, name) {
     Y.Event.define(name, {
         
         on: function (node, sub, notifier) {
-            
-            sub.onHandle = Y.one('doc').on(event, function(e){
-            	if (this.isOutside(node, e.target)){
-            		notifier.fire(e);
-            	}
-            }, this);
+        	
+            sub.onHandle = Y.one('doc').delegate(event, function(e){
+            	notifier.fire(e);
+            }, Y.bind(this.isOutside, this, node));
         },
         
         detach: function (node, sub, notifier) {
@@ -48,22 +46,22 @@ Y.Event.defineOutside = function (event, name) {
         },
         
         delegate: function (node, sub, notifier, filter) {
-            
-            sub.delegateHandle = Y.one('doc').delegate(event, function(e){
-                if (this.isOutside(node, e.target)) {
-                    notifier.fire(e);
-                }
-            }, filter, this);
+        	
+        	sub.delegateHandle = Y.one('doc').delegate(event, function(e){
+				if (this.isOutside(node, e)) {
+					notifier.fire(e);
+				}
+			}, filter, this);
         },
         
         detachDelegate : function (node, sub, notifier, filter) {
-            
-            sub.delegateHandle.detach();
+        	
+        	sub.delegateHandle.detach();
         },
         
-        isOutside: function (node, target) {
-            
-            return target !== node && ! target.ancestor(function(p){ return p === node; });
+        isOutside: function (node, e) {
+        	
+        	return e.target !== node && ! e.target.ancestor(function(p){ return p === node; });
         }
         
     });
@@ -75,4 +73,4 @@ Y.each(nativeEvents, function (event) {
 });
 
 
-}, '@VERSION@' ,{requires:['event-focus', 'event-synthetic']});
+}, 'gallery-2010.04.21-21-51' ,{requires:['event-focus', 'event-synthetic']});

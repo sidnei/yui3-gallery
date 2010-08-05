@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+
+<html>
+	<head>
+		<title>OutsideEvents</title>
+	</head>
+	
+	<body>
+		
+		<h1>OutsideEvents</h1>
+		
+		<div id="foo">
+			<p id="bar"><a href="http://yuilibrary.com/"><em>YUI</em></a></p>
+			<p>more text</p>
+		</div>
+		
+		<script src="../../../../yui3/build/yui/yui.js"></script>
+		<script src="gallery-outside-events-debug.js"></script>
+		<script>
+			
+			YUI({
+				
+				combine	: false,
+				filter	: 'RAW'
+				
+			}).use('node', 'gallery-outside-events', function(Y){
+				
+				Y.one('#bar').once('clickoutside', function(e){
+					e.preventDefault();
+					Y.log(e);
+				});
+				
+				Y.one('#bar').on('clickoutside', function(e){
+					Y.log('foo');
+				});
+				
+				Y.one('#bar').delegate('clickoutside', function(e){
+					Y.log('only A P!');
+				}, 'p');
+				
+			});
+			
+		</script>
+		
+	</body>
+</html>
