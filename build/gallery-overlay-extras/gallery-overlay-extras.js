@@ -437,4 +437,4 @@ YUI.add('gallery-overlay-extras', function(Y) {
 	Y.Plugin.OverlayAutohide = OverlayAutohide;
 
 
-}, '@VERSION@' ,{requires:['overlay','plugin','event-resize','gallery-outside-events'], supersedes:['gallery-overlay-modal']});
+}, 'gallery-2010.08.04-19-46' ,{requires:['overlay','plugin','event-resize','gallery-outside-events'], supersedes:['gallery-overlay-modal']});

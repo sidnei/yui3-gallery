@@ -1,224 +1,335 @@
 YUI.add('gallery-simple-datatable', function(Y) {
 
-  var SORT_ASC = 'asc',
-      SORT_DESC = 'desc',
-      SORT_DIRECTION = 'sortDirection';
-      
-      
-  Y.SimpleDatatable = Y.Base.create('simple-datatable', Y.Widget, [],{
-    
-    CONTENT_TEMPLATE : '<table>',
-    
-    className : '',
-    
-    tHead : null,
-    
-    tBody : null,
-    
-    initializer : function(config) {
-      this.className = this.getClassName();
-    },
 
-      
-    renderUI : function() {
-      this.tHead = Y.Node.create('<thead/>');
-      this.tBody = Y.Node.create('<tbody/>');
-      this.get('contentBox').append(this.tHead).append(this.tBody);
-    },
-    
-    bindUI :  function() {
-      var overClass = this.className + '-over';
-      
-      // update sort classes
-      this.after('sortDirectionChange', this._updateSortClass);
-      
-      // update selected 
-      this.after('selectedRowChange', this._updateSelectedRow);
-      
-      // sort on header click
-      this.tHead.delegate('click', function(e){
-        var className = this.className + '-' + this.get(SORT_DIRECTION);
-        this.tHead.all('.' + className).removeClass(className);
-        e.currentTarget.addClass(className);
-        
-        this.sortRowsByKey(e.currentTarget.getAttribute('sortKey'));
-      },'th',this);
-      
-      // allow for row highlight
-      this.tBody.delegate('mouseenter', function(e){
-        e.currentTarget.addClass(overClass);
-      },'tr');
-      
-      this.tBody.delegate('mouseleave', function(e){
-        e.currentTarget.removeClass(overClass);
-      },'tr');
-      
-      // update selected row
-      this.tBody.delegate('click', function(e){
-        this.set('selectedRow',e.currentTarget);
-      },'tr',this);
-    },
-    
-    syncUI : function() {
-      var headers = this.get('headers'), 
-          rows = this.get('rows');
-          
-      if(headers) {
-        this.setHeaders(headers);
-      }
-      
-      if(rows) {
-        this.setRows(rows);
-      }
-    },
-    
-    setHeaders : function(obj){
-      var row, cell, o, count = 0;
-      row = Y.Node.create('<tr>');
-      
-      for(o in obj) {
-        cell = Y.Node.create('<th>');
-        cell.addClass(this.className + '-col-' + (count++));
-        cell.addClass(this.className + '-col-' + o);
-        cell.append('<div>' + obj[o] + '</div>');
-        cell.setAttribute('sortKey',o);
-        
-        row.append(cell);
-      }
-        
-      this.tHead.setContent('');
-      this.tHead.setContent(row);
-    },
-    
-    setRows : function(obj) {
-      var o, rowCount = 0;
-      this.tBody.setContent('');
-      for(o in obj) {
-        this.addRow(obj[o], rowCount++);
-      }
-    },
-    
-    addRow : function(obj, rowCount) {
-      var headers = this.get('headers') || {}, 
-      row, cell, o, cellCount = 0, yuiId = '__yui_id';
-      row = Y.Node.create('<tr>');
-      
-      for(o in obj) {
-        if(o.substring(0,2) === '__') {
-          row.setAttribute(o.substring(2),obj[o]);
-          continue;
+/**
+ * Simple Datatable is a basic load and sort datatable
+ *
+ * @class SimpleDatatable
+ * @extends Widget
+ * @version 1.5.0
+ */
+
+var YL = Y.Lang;
+
+
+Y.SimpleDatatable = Y.Base.create('sdt', Y.Widget, [],{
+  //////  P U B L I C  //////
+  /**
+   * Override the default template with a table
+   * @since 1.0.0
+   */
+  CONTENT_TEMPLATE : '<table>',
+
+  /**
+   * Classname of the widget. Used to prevent multiple look ups
+   * @since 1.5.0
+   */
+  _className : '',
+
+  /**
+   * Provides a reference to the table head
+   * @since 1.0.0
+   */
+  tHead : null,
+
+  /**
+   * After lookup property to determine if headers have been set already
+   * @since 1.3.0
+   * @protpery
+   * @public
+   */
+  headersSet : false,
+
+  /**
+   * After lookup property to determine if rows have been set already
+   * @since 1.3.0
+   * @protpery
+   * @public
+   */
+  rowsSet : false,
+
+  /**
+   * Set up the sort and rowSelected events and the className
+   * @since 1.0.0
+   * @param config
+   * @method initializer
+   */
+  initializer : function(config) {
+    this._className = this.getClassName();
+  },
+
+  /**
+   * Build the tHead and tBody and append them to the contenBox
+   * @since 1.0.0
+   * @method renderUI
+   */
+  renderUI : function() {
+    this.tHead = Y.Node.create('<thead></thead>');
+    this.tBody = Y.Node.create('<tbody></tbody>');
+    this.get('contentBox').append(this.tHead).append(this.tBody);
+  },
+
+  /**
+   * Updates the headers and the rows
+   * @since 1.0.0
+   * @method syncUI
+   */
+  syncUI : function() {
+    this.setHeaders(this.get('headers'));
+    this.setRows(this.get('rows'));
+  },
+
+  /**
+   * Loops through the header object and builds cells
+   * @since 1.3.0
+   * @method setHeaders
+   * @param headerObj
+   * @return this
+   * @chainable
+   */
+  setHeaders : function(headerObj){
+  this._buildHeader(headerObj);
+    return this;
+  },
+
+  /**
+   * Loops through array and builds rows
+   * @since 1.0.0
+   * @see addRow
+   * @method setRows
+   * @param arrayOfRows
+   * @return this
+   * @chainable
+   */
+  setRows : function(arrayOfRows) {
+  this._buildRows(arrayOfRows);
+    return this;
+  },
+
+
+  /**
+   * Removes all header content
+   * @since 1.2.0
+   * @method clearHeaders
+   * @param purge Removes all header data when set to true
+   * @return this
+   * @chainable
+   */
+  clearHeaders : function(purge) {
+    if(purge === true) {
+      this.set('headers', {});
+    }
+    return this.setHeaders();
+  },
+
+  /**
+   * Removes all rows
+   * @since 1.2.0
+   * @method clearRows
+   * @param purge removes all row data when set to true
+   * @return this
+   * @chainable
+   */
+  clearRows : function(purge) {
+    if(purge === true) {
+      this.set('rows', []);
+    }
+    return this.setRows();
+  },
+
+
+  //  P RO T E C T E D  //
+
+  
+  _buildHeader : function(headerObj) {
+    var row = '<tr>',
+        cells = '', o, p, count = 0,
+        template = this.get('linerTemplate'),
+        headerConfig = {
+          linerClasses : this._className + '-liner',
+          labelClasses : this._className + '-label',
+          label : ''
+        };
+
+    if(headerObj) {
+    if(YL.isObject(headerObj)) {
+      for(o in headerObj) {
+      cells += '<th class="' + this._className + '-col-' + (count++) + ' ' + this._className + '-col-' + o + '"';
+      cells += ' key="' + o +'"';
+         
+      if(YL.isObject(headerObj[o])) {
+        for(p in headerObj[o]) {
+        cells += ' ' + p + '="'+ headerObj[o][p] + '"';
         }
-        if(!headers[o]) {
-          continue;
-        }
-        
-        cell = Y.Node.create('<td>');
-        cell.addClass(this.className + '-col-' + cellCount++);
-        cell.addClass(this.className + '-col-' + o);
-        
-        if(obj[o]) {
-          cell.append('<div>' + obj[o] + '</div>');
-        }else{
-          cell.append('<div/>');
-        }
-        
-        row.append(cell);
       }
       
-      if(!obj[yuiId]) {
-        obj[yuiId] = Y.Event.generateId(row);
-      }
-      row.set('id',obj[yuiId]);
-      
-      row.addClass(this.className + '-' + ( (rowCount % 2) ? 'even' : 'odd') );
-      
-      this.tBody.append(row);
-    },
-    
-    toggleSort : function() {
-      var oldDir = this.get(SORT_DIRECTION),
-          newDir = oldDir === SORT_ASC ? SORT_DESC : SORT_ASC;
-          
-      this.set(SORT_DIRECTION, newDir );
-    },
-    
-    sortRowsByKey : function(key) {
-      var rows = this.get('rows'), direction;
-      
-      // either toggle the sort direction or set key
-      if(key === this.get('sortKey')) {
-        this.toggleSort();
+      if(YL.isString(headerObj[o])) {
+        headerConfig.label = headerObj[o];
+      }else if(headerObj[o].label){
+        headerConfig.label = headerObj[o].label.toString();
       }else{
-        this.set('sortKey', key);
-        this.set(SORT_DIRECTION, SORT_ASC);
+        headerConfig.label = o;
       }
       
-      direction = this.get(SORT_DIRECTION);
+      cells += Y.substitute(template, headerConfig);
       
-      rows.sort(function(a,b){
-        var a = a[key], b = b[key];
-        
-        if(Y.Lang.isString(a[key])) {
-          a = a[key].toLowerCase();
-          b = b[key].toLowerCase();
-        }
-        
-        if(a == b) {
-          return 0;
-        }
-        
-        if(a > b) {
-          return (direction === SORT_ASC) ? 1 : -1;
-        }
-        
-        return (direction === SORT_DESC) ? 1 : -1;
-        
-      });
-      
-      this.setRows(rows);
-      this.set('rows',rows);
-      
-      this.updateSelectedRow(this.get('selectedRow'));
-    },
-    
-    updateSelectedRow : function(newRow, oldRow) {
-      var selectedClass = this.className + '-selected';
-      if(oldRow) {
-        this.tBody.one('#' + oldRow.get('id')).removeClass(selectedClass);
-      }
-      if(newRow) {
-        this.tBody.one('#' + newRow.get('id')).addClass(selectedClass);
-      }
-    },
-    
-    _updateSelectedRow : function(e) {
-      if(e.newVal === e.prevVal) {
-        return;
-      }
-      this.updateSelectedRow(e.newVal, e.prevVal);
-    },
-    
-    _updateSortClass : function(e){
-      var oldClass = this.className + '-' + e.prevVal,
-          newClass = this.className + '-' + e.newVal;
-      this.tHead.all('.' + oldClass).replaceClass(oldClass,newClass);
-    }
-    
-  },{
-    ATTRS : {
-      headers : {},
-      rows : {},
-      selectedRow : {},
-      sortKey : {},
-      sortDirection : {
-        value : SORT_ASC,
-        setter : function (val) {
-          val = val === SORT_DESC ? SORT_DESC : SORT_ASC;
-          return val;
-        }
+      cells += '</th>';
+
       }
     }
-  });
+  }
+  
+  row += cells + '</tr>';
+
+    this.tHead.setContent(row);
+
+    this.headersSet = true;
+  },
+  
+  _buildRows : function(arrayOfRows) {
+    var i,l, cb = this.get('contentBox'),
+        rows = '';
+
+    if(arrayOfRows) {
+    for(i=0, l=arrayOfRows.length; i < l; i++) {
+      rows += this._addRow(arrayOfRows[i], i) ;
+    }
+    }
+
+  this.tbody = Y.Node.create('<tbody>' + rows + '</tbody>');
+    cb.one('tbody').replace(this.tbody);
+
+    this.rowsSet = true;
+  },
+  
+  /**
+   * Creates a row from the provided data and adds it to the tBody
+   *   Keys prefixed with __ (two underscores) are added as parameters
+   *   to the &lt;tr&gt; instead of matching to a header column
+   * @since 1.3.0
+   * @protected
+   * @method _addRow
+   * @param rowData
+   * @param rowCount
+   * @return String row to be added
+   */
+  _addRow : function(rowData, rowCount) {
+    var headers = this.get('headers') || {},
+        row = '<tr', cells = '', key, cellCount = 0, yuiId = '__yui_id',
+        template = this.get('linerTemplate'),
+        cellConfig = {
+          linerClasses : this._className + '-liner',
+          labelClasses : this._className + '-label',
+          label : ''
+        },
+    isObject = YL.isObject(rowData),
+        isArray = YL.isArray(rowData);
 
 
-}, 'gallery-2010.06.30-19-54' ,{requires:['node','widget','event','event-mouseenter']});
+    // loop header keys to build cells
+    for(key in headers) {
+      cells += this._generateRowCell(cellConfig, rowData, template, cellCount++, key, isObject, isArray);
+    }
+
+
+    if (isObject) {
+      // add row attributes from custom keys
+      for (key in rowData) {
+        if (key.substring(0,2) === '__') {
+          row += ' ' + key.substring(2) + '="' + rowData[key] + '"';
+        }
+      }
+    /*
+      if (!rowData[yuiId]) {
+        rowData[yuiId] = Y.Event.generateId(Y.Node.create('<b />'));
+      }
+    */
+    row += ' id="' + rowData[yuiId] + '"';
+    }
+
+  row += ' class="' + this._className + '-' + ( (rowCount % 2) ? 'even' : 'odd') + '">';
+  
+  row += cells + '</tr>';
+
+    return row;
+  },
+    
+  /**
+   * Creates a &lt;td&gt; string based on the template given and the 
+   *   cellData and rowData given
+   *
+   * @since 1.5.0
+   * @protected
+   * @method _generateRowCell
+   * @param Object cellConfig
+   * @param Object rowData
+   * @param String template
+   * @param Integer cellCount
+   * @param String cellKey
+   * @param Boolean isObject
+   * @param Boolean isArray
+   * @return String
+   */
+  _generateRowCell : function(cellConfig, rowData, template, cellCount, cellKey, isObject, isArray){
+    var cell = '<td class="' + this._className + '-col-' + cellCount + ' ' + this._className + '-col-' + cellKey + '">';
+
+    if (isObject && rowData[cellKey]) {
+      cellConfig.label = rowData[cellKey];
+    } else if (isArray && rowData[cellCount]) {
+      cellConfig.label = rowData[cellCount];
+    } else {
+      cellConfig.label = '&nbsp;';
+    }
+
+    cell += Y.substitute(template, cellConfig);
+
+  
+  cell += '</td>';
+  
+    return cell;
+  }
+
+
+},{
+  ATTRS : {
+
+    /**
+     * An associated array of key -&gt; value pairs where key is used
+     *   to keep the column data organized and value is the &lt;th&gt;
+     *   innerHTML or display text.
+     * @since 1.0.0
+       * @attribute headers
+       * @type object
+     */
+    headers : {
+      value : {},
+      validator : YL.isObject
+    },
+
+    /**
+     */
+    linerTemplate : {
+      value : '<div class="{linerClasses}"><div class="{labelClasses}">{label}</div></div>'
+    },
+
+    /**
+     * Array of associated arrays of key -&gt; value pairs, where
+     *   key is used to match with the headers assoc array to ensure
+     *   column data is in the correct place and value is the
+     *   innerHTML or display text.
+     * @since 1.0.0
+     * @attribute rows
+     * @type array
+     */
+    rows : {
+      value : [],
+      validator : YL.isArray,
+    setter: function(val) {
+      return val;
+    }
+    }
+  }
+});
+
+
+}, 'gallery-2010.12.10-17-31' ,{requires:['node','widget','widget-child','event','event-mouseenter','substitute']});

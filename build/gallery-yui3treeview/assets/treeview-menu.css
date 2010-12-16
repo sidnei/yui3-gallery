@@ -1,0 +1,65 @@
+.yui3-js-enabled .yui3-treeview-loading {
+    display:none;
+}
+
+.yui3-treeview a {
+    text-decoration: none;
+    color: black;
+}
+
+
+
+.yui3-tree-collapsed .yui3-treeview-treelabel {
+    background-position: 20px -3px;
+}
+
+.yui3-treeleaf-content,
+.yui3-treeview-treelabel,
+.yui3-toggle {
+    background: url(sprite_tree_view_blue.gif) no-repeat;
+}
+
+.yui3-toggle {
+    display: block;
+    position: absolute;
+    top: 2px;
+    width: 17px;
+    height: 9px;
+    text-indent: -1000px;
+    background-position: 0px -205px;
+}
+
+.yui3-tree-collapsed  .yui3-toggle {
+    background-position: 0 -165px;
+    
+}
+
+.yui3-treeview-treelabel {
+    padding-left: 44px;
+    background-position: 20px -43px;
+    position: relative;
+}
+
+.yui3-treeview .yui3-tree-collapsed .yui3-treeview-content {
+    display : none;
+}
+
+.yui3-treeview  .yui3-treeview-content {
+    margin-left: 22px;
+}
+
+.yui3-treeview .yui3-treeleaf {
+    margin-top: 1px;
+}
+
+.playground {
+    margin: 1em;
+}
+
+.yui3-treeleaf-content {
+    background-position: 20px -81px;
+    padding-left: 43px;
+}
+
+.yui3-treeview-selected {
+}
