@@ -1,8 +1,8 @@
-	/*!
-	 * Resource - A RESTful wrapper around Y.io
+	/**
+	 * Resource — A RESTful wrapper around Y.io
 	 * 
 	 * Oddnut Software
-	 * Copyright (c) 2009 Eric Ferraiuolo - http://eric.ferraiuolo.name
+	 * Copyright (c) 2009-2011 Eric Ferraiuolo - http://eric.ferraiuolo.name
 	 * YUI BSD License - http://developer.yahoo.com/yui/license.html
 	 */
 	
@@ -46,35 +46,29 @@
 		
 		ATTRS : {
 			
-			uri : {
-				validator : isString
-			},
-			
-			headers : {
-				validator : isObject
-			},
-			
-			timeout : {
-				validator : isNumber
-			},
-			
-			entityTranslators : {
-				validator : isObject
-			}
+			uri					: { validator: isString },
+			headers				: { validator: isObject },
+			timeout				: { validator: isNumber },
+			entityTranslators	: { validator: isObject }
 			
 		},
 		
 		ENTITY_TRANSLATORS : {
+			
 			JSON	: {
 				contentType	: 'application/json; charset=UTF-8',
 				serialize	: Y.JSON.stringify,
-				deserialize	: Y.JSON.parse
+				deserialize	: function(r){
+					return Y.JSON.parse(r.responseText);
+				}
 			},
+			
 			FORM	: {
 				contentType	: 'application/x-www-form-urlencoded; charset=UTF-8',
 				serialize	: Y.QueryString.stringify,
 				deserialize	: null
 			}
+			
 		},
 		
 		NO_ENTITY_METHODS : [GET, HEAD, DELETE],
@@ -302,13 +296,12 @@
 		_onSuccess : function (txId, r, args) {
 			
 			var methodSuccess = args.request.method.toLowerCase()+'Success',
-				entity = r.responseText,
 				translator = this.getEntityTranslator(r.getResponseHeader('Content-Type')),
-				payLoad;
+				entity, payLoad;
 			
-			if (entity && translator && translator.deserialize) {
+			if (r && translator && translator.deserialize) {
 				try {
-					entity = translator.deserialize(entity);
+					entity = translator.deserialize(r);
 				} catch (err) {
 					Y.error(err);
 				}
