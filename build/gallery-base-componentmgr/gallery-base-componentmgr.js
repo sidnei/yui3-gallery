@@ -68,7 +68,7 @@ YUI.add('gallery-base-componentmgr', function(Y) {
 			
 			/**
 			 * Fired when a component is going to be initialized.
-			 * The <code>componentToInit</code> property is the String name of the component going to be intialized.
+			 * The <code>componentToInit</code> property is the String name of the component going to be initialized.
 			 * Developers can listen to the 'on' moment to prevent the default action of initializing the component.
 			 * Listening to the 'after' moment, a <code>component</code> property on the Event Object is the component instance.
 			 * 
@@ -78,9 +78,9 @@ YUI.add('gallery-base-componentmgr', function(Y) {
 			this.publish(E_INIT_COMPONENT, { defaultFn: this._defInitComponentFn });
 			
 			/**
-			 * Fired when a component is going to be destoryed.
-			 * The <code>component</code> property is the String name of the component going to be destoryed.
-			 * Developers can listen to the 'on' moment to prevent the default action of destorying the component.
+			 * Fired when a component is going to be destroyed.
+			 * The <code>component</code> property is the String name of the component going to be destroyed.
+			 * Developers can listen to the 'on' moment to prevent the default action of destroying the component.
 			 * 
 			 * @event destroyComponent
 			 * @param event {Event} The event object for destoryComponent; has properties: component
@@ -95,6 +95,8 @@ YUI.add('gallery-base-componentmgr', function(Y) {
 					this.fire(E_INIT_COMPONENTS, { componentsToInit: [] });
 				});
 			}
+			
+			Y.before(this._destroyComponents, this.constructor.prototype, 'destructor', this);
 		},
 		
 		// *** Public Methods *** //
@@ -260,6 +262,17 @@ YUI.add('gallery-base-componentmgr', function(Y) {
 		_destroyComponent : function (c) {
 			
 			this.fire(E_DESTROY_COMPONENT, { component: c });
+		},
+		
+		_destroyComponents : function () {
+			
+			var instances = this._components.data[INSTANCE];
+			
+			Y.each(instances, function(instance, component){
+				if (instance) {
+					this._destroyComponent(component);
+				}
+			}, this);
 		},
 		
 		_defInitComponentsFn : function (e) {
